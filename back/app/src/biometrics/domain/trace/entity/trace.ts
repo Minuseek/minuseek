@@ -1,0 +1,355 @@
+import { assertCaseAcceptsWork } from '../../case-work-window';
+import { FileDigest } from '../../file-digest.vo';
+import { ImageResolution } from '../../image-resolution.vo';
+import { MarkRadius } from '../../mark-radius.vo';
+import { ImageSize } from '../../image-size';
+import { AlreadyWithdrawnError } from '../../withdrawal/errors/already-withdrawn.error';
+import { NotWithdrawnError } from '../../withdrawal/errors/not-withdrawn.error';
+import { Withdrawal } from '../../withdrawal/withdrawal.vo';
+import { InvalidTraceLocationError } from '../errors/invalid-trace-location.error';
+import { CaptureMetadata } from '../value-objects/capture-metadata.vo';
+import {
+  RevelationTechnique,
+  RevelationTechniqueEnum,
+} from '../value-objects/revelation-technique.vo';
+import { TraceOrigin, TraceOriginEnum } from '../value-objects/trace-origin.vo';
+import { TraceStatus, TraceStatusEnum } from '../value-objects/trace-status.vo';
+
+export const MAX_TRACE_LOCATION_LENGTH = 300;
+
+export interface TracePrimitives {
+  id: string;
+  number: number;
+  path: string;
+  status: TraceStatusEnum;
+  caseId: string;
+  sha256: string | null;
+  displayableSha256: string | null;
+  captureWidth: number | null;
+  captureHeight: number | null;
+  capturedAt: Date | null;
+  captureOrientation: number | null;
+  captureFocalLength: number | null;
+  captureDeviceModel: string | null;
+  sourceWidth: number | null;
+  sourceHeight: number | null;
+  withdrawnAt: Date | null;
+  withdrawalMotive: string | null;
+  withdrawalMotiveDetail: string | null;
+  resolutionDpi: number | null;
+  markRadius: number | null;
+  origin: TraceOriginEnum | null;
+  location: string | null;
+  revelationTechnique: RevelationTechniqueEnum | null;
+  notIdentifiedAt: Date | null;
+  thumbPath: string | null;
+}
+
+export interface TraceDescription {
+  origin: string;
+  location: string;
+  revelationTechnique: string;
+}
+
+interface UploadTraceProps {
+  id: string;
+  number: number;
+  path: string;
+  caseId: string;
+  sha256: FileDigest;
+  displayableSha256?: FileDigest;
+  captureMetadata?: CaptureMetadata;
+  location?: string;
+  thumbPath?: string | null;
+  sourceSize?: ImageSize | null;
+}
+
+function assertLocationFitsColumn(location: string): void {
+  if (location.length > MAX_TRACE_LOCATION_LENGTH) {
+    throw new InvalidTraceLocationError(
+      `elle ne peut pas dépasser ${MAX_TRACE_LOCATION_LENGTH} caractères`,
+    );
+  }
+}
+
+export class Trace {
+  private constructor(
+    private readonly _id: string,
+    private readonly _number: number,
+    private readonly _path: string,
+    private _status: TraceStatus,
+    private readonly _caseId: string,
+    private readonly _sha256: FileDigest | null,
+    private readonly _displayableSha256: FileDigest | null,
+    private readonly _captureMetadata: CaptureMetadata,
+    private _withdrawal: Withdrawal | null,
+    private _resolution: ImageResolution | null,
+    private _markRadius: MarkRadius | null,
+    private _origin: TraceOrigin | null,
+    private _location: string | null,
+    private _revelationTechnique: RevelationTechnique | null,
+    private _notIdentifiedAt: Date | null,
+    private readonly _thumbPath: string | null,
+    private readonly _sourceSize: ImageSize | null,
+  ) {}
+
+  static assertCaseCanReceiveTrace(
+    caseId: string,
+    caseStatus: string | null,
+  ): void {
+    assertCaseAcceptsWork(caseId, caseStatus);
+  }
+
+  static upload(props: UploadTraceProps): Trace {
+    if (!props.id) {
+      throw new Error('Trace id is required');
+    }
+    if (!props.path) {
+      throw new Error('Trace path is required');
+    }
+    if (!props.caseId) {
+      throw new Error('Trace caseId is required');
+    }
+    if (!Number.isInteger(props.number) || props.number < 1) {
+      throw new Error('Trace number must be a positive integer');
+    }
+    const location = props.location?.trim() ?? '';
+    assertLocationFitsColumn(location);
+    return new Trace(
+      props.id,
+      props.number,
+      props.path,
+      TraceStatus.received(),
+      props.caseId,
+      props.sha256,
+      props.displayableSha256 ?? props.sha256,
+      props.captureMetadata ?? CaptureMetadata.empty(),
+      null,
+      null,
+      null,
+      null,
+      location.length === 0 ? null : location,
+      null,
+      null,
+      props.thumbPath ?? null,
+      props.sourceSize ?? null,
+    );
+  }
+
+  static reconstitute(payload: {
+    id: string;
+    number: number;
+    path: string;
+    status: string;
+    caseId: string;
+    sha256: string | null;
+    displayableSha256?: string | null;
+    captureWidth: number | null;
+    captureHeight: number | null;
+    capturedAt: Date | null;
+    captureOrientation: number | null;
+    captureFocalLength: number | null;
+    captureDeviceModel: string | null;
+    sourceWidth: number | null;
+    sourceHeight: number | null;
+    withdrawnAt: Date | null;
+    withdrawalMotive: string | null;
+    withdrawalMotiveDetail: string | null;
+    resolutionDpi: number | null;
+    markRadius: number | null;
+    origin: string | null;
+    location: string | null;
+    revelationTechnique: string | null;
+    notIdentifiedAt: Date | null;
+    thumbPath: string | null;
+  }): Trace {
+    return new Trace(
+      payload.id,
+      payload.number,
+      payload.path,
+      TraceStatus.from(payload.status),
+      payload.caseId,
+      payload.sha256 === null ? null : FileDigest.from(payload.sha256),
+      payload.displayableSha256
+        ? FileDigest.from(payload.displayableSha256)
+        : null,
+      CaptureMetadata.of({
+        width: payload.captureWidth ?? undefined,
+        height: payload.captureHeight ?? undefined,
+        capturedAt: payload.capturedAt ?? undefined,
+        orientation: payload.captureOrientation ?? undefined,
+        focalLength: payload.captureFocalLength ?? undefined,
+        deviceModel: payload.captureDeviceModel ?? undefined,
+      }),
+      Withdrawal.fromPersistence(
+        payload.withdrawalMotive,
+        payload.withdrawnAt,
+        payload.withdrawalMotiveDetail,
+      ),
+      ImageResolution.fromPersistence(payload.resolutionDpi),
+      MarkRadius.fromPersistence(payload.markRadius),
+      TraceOrigin.fromPersistence(payload.origin),
+      payload.location,
+      RevelationTechnique.fromPersistence(payload.revelationTechnique),
+      payload.notIdentifiedAt,
+      payload.thumbPath,
+      payload.sourceWidth === null || payload.sourceHeight === null
+        ? null
+        : { width: payload.sourceWidth, height: payload.sourceHeight },
+    );
+  }
+
+  calibrate(resolutionDpi: number): void {
+    this._resolution = ImageResolution.of(resolutionDpi);
+  }
+
+  setMarkRadius(radius: MarkRadius): void {
+    this._markRadius = radius;
+  }
+
+  describe(description: TraceDescription): void {
+    const origin = TraceOrigin.from(description.origin);
+    const revelationTechnique = RevelationTechnique.from(
+      description.revelationTechnique,
+    );
+    const location = description.location.trim();
+    if (location.length === 0) {
+      throw new InvalidTraceLocationError('elle ne peut pas être vide');
+    }
+    assertLocationFitsColumn(location);
+
+    this._origin = origin;
+    this._location = location;
+    this._revelationTechnique = revelationTechnique;
+  }
+
+  declareExploitability(isExploitable: boolean): void {
+    this._status = isExploitable
+      ? TraceStatus.exploitable()
+      : TraceStatus.notExploitable();
+  }
+
+  declareNotIdentified(at: Date): void {
+    this._notIdentifiedAt = at;
+  }
+
+  withdrawNotIdentified(): void {
+    this._notIdentifiedAt = null;
+  }
+
+  withdraw(motive: string, at: Date, motiveDetail?: string | null): void {
+    if (this._withdrawal !== null) {
+      throw new AlreadyWithdrawnError(this._id);
+    }
+    this._withdrawal = Withdrawal.of(motive, at, motiveDetail);
+  }
+
+  restore(): void {
+    if (this._withdrawal === null) {
+      throw new NotWithdrawnError(this._id);
+    }
+    this._withdrawal = null;
+  }
+
+  toPrimitives(): TracePrimitives {
+    return {
+      id: this._id,
+      number: this._number,
+      path: this._path,
+      status: this._status.getValue(),
+      caseId: this._caseId,
+      sha256: this._sha256?.getValue() ?? null,
+      displayableSha256: this._displayableSha256?.getValue() ?? null,
+      captureWidth: this._captureMetadata.width ?? null,
+      captureHeight: this._captureMetadata.height ?? null,
+      capturedAt: this._captureMetadata.capturedAt ?? null,
+      captureOrientation: this._captureMetadata.orientation ?? null,
+      captureFocalLength: this._captureMetadata.focalLength ?? null,
+      captureDeviceModel: this._captureMetadata.deviceModel ?? null,
+      sourceWidth: this._sourceSize?.width ?? null,
+      sourceHeight: this._sourceSize?.height ?? null,
+      withdrawnAt: this._withdrawal?.getAt() ?? null,
+      withdrawalMotive: this._withdrawal?.getMotive() ?? null,
+      withdrawalMotiveDetail: this._withdrawal?.getDetail() ?? null,
+      resolutionDpi: this._resolution?.getValue() ?? null,
+      markRadius: this._markRadius?.getValue() ?? null,
+      origin: this._origin?.getValue() ?? null,
+      location: this._location,
+      revelationTechnique: this._revelationTechnique?.getValue() ?? null,
+      notIdentifiedAt: this._notIdentifiedAt,
+      thumbPath: this._thumbPath,
+    };
+  }
+
+  get id(): string {
+    return this._id;
+  }
+
+  get number(): number {
+    return this._number;
+  }
+
+  get path(): string {
+    return this._path;
+  }
+
+  get status(): TraceStatusEnum {
+    return this._status.getValue();
+  }
+
+  get caseId(): string {
+    return this._caseId;
+  }
+
+  get sha256(): string | null {
+    return this._sha256?.getValue() ?? null;
+  }
+
+  get displayableSha256(): string | null {
+    return this._displayableSha256?.getValue() ?? null;
+  }
+
+  get captureMetadata(): CaptureMetadata {
+    return this._captureMetadata;
+  }
+
+  get isWithdrawn(): boolean {
+    return this._withdrawal !== null;
+  }
+
+  get withdrawnAt(): Date | null {
+    return this._withdrawal?.getAt() ?? null;
+  }
+
+  get withdrawalMotiveDetail(): string | null {
+    return this._withdrawal?.getDetail() ?? null;
+  }
+
+  get resolutionDpi(): number | null {
+    return this._resolution?.getValue() ?? null;
+  }
+
+  get markRadius(): number | null {
+    return this._markRadius?.getValue() ?? null;
+  }
+
+  get origin(): TraceOriginEnum | null {
+    return this._origin?.getValue() ?? null;
+  }
+
+  get location(): string | null {
+    return this._location;
+  }
+
+  get revelationTechnique(): RevelationTechniqueEnum | null {
+    return this._revelationTechnique?.getValue() ?? null;
+  }
+
+  get notIdentifiedAt(): Date | null {
+    return this._notIdentifiedAt;
+  }
+
+  get thumbPath(): string | null {
+    return this._thumbPath;
+  }
+}

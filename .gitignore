@@ -1,0 +1,16 @@
+# Configuration personnelle des outils de développement : reste en local,
+# jamais commitée.
+RTK.md
+.mcp.json
+skills-lock.json
+.idea/
+.vscode/
+.DS_Store
+.pnpm-store/
+
+# Skills tierces installées localement (licences propres à leurs auteurs)
+back/.agents/skills/clean-ddd-hexagonal/
+back/.agents/skills/domain-driven-design/
+back/.agents/skills/hexagonal-architecture/
+back/.agents/skills/product-brainstorming/
+front/.agents/skills/product-brainstorming/

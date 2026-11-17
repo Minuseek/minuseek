@@ -1,0 +1,292 @@
+import { useCallback, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useClickOutside } from '@/features/shared/hooks/useClickOutside'
+import { TOUR_UI_SELECTOR } from '@/features/shared/constants/tour.constants'
+import type { BiometricImageType } from '@/features/biometric-image/types/biometricImage'
+import ModeButton from './ModeButton'
+import ItemToolbar from './ItemToolbar'
+import FilterPanel from './FilterPanel'
+import FilterControl from './FilterControl'
+import ColorPalette from './ColorPalette'
+import MinutiaTypePalette from './MinutiaTypePalette'
+import MarkerSizePalette from './MarkerSizePalette'
+import type { MinutiaType } from '@/features/biometric-image/lib/minutiae'
+import type { CurvePoint } from '@/features/biometric-image/lib/toneCurve'
+import {
+  IMAGE_TOOLS,
+  ANNOTATION_TOOLS,
+  MINUTIA_TOOLS,
+  RULER_TOOL,
+  type CanvasFilters,
+  type FilterConfig,
+  type ImagePanel,
+  type AnnotationToolType,
+} from './canvasFilters'
+import { isIdentityCurve } from '@/features/biometric-image/lib/toneCurve'
+
+type AnnotationPanel = 'color' | 'minutiaType' | 'markerSize'
+
+export type CanvasMode = 'hand' | 'image' | 'annotation'
+
+type CanvasToolbarProps = {
+  type: BiometricImageType
+  mode: CanvasMode
+  onModeChange: (mode: CanvasMode) => void
+  filters: CanvasFilters
+  isExpertCase?: boolean
+  onFiltersChange: (filters: CanvasFilters) => void
+  curvePoints: CurvePoint[]
+  isCurveWindowOpen: boolean
+  onToggleCurveWindow: () => void
+  activeTool: AnnotationToolType | null
+  onActiveToolChange: (tool: AnnotationToolType | null) => void
+  activeColor: string
+  onActiveColorChange: (color: string) => void
+  activeMinutiaType: MinutiaType
+  onActiveMinutiaTypeChange: (type: MinutiaType) => void
+  selectedMinutiaType: MinutiaType | undefined
+  markRadius: number
+  longestSide: number
+  resolutionDpi: number | null
+  onMarkRadiusChange: (markRadius: number) => void
+  isRulerActive: boolean
+  onToggleRuler: () => void
+}
+
+export default function CanvasToolbar({
+  type,
+  mode,
+  onModeChange,
+  filters,
+  isExpertCase = false,
+  onFiltersChange,
+  curvePoints,
+  isCurveWindowOpen,
+  onToggleCurveWindow,
+  activeTool,
+  onActiveToolChange,
+  activeColor,
+  onActiveColorChange,
+  activeMinutiaType,
+  onActiveMinutiaTypeChange,
+  selectedMinutiaType,
+  markRadius,
+  longestSide,
+  resolutionDpi,
+  onMarkRadiusChange,
+  isRulerActive,
+  onToggleRuler,
+}: CanvasToolbarProps) {
+  const { t } = useTranslation()
+  const [openFilter, setOpenFilter] = useState<string | null>(null)
+  const [openPanel, setOpenPanel] = useState<AnnotationPanel | null>(null)
+
+  const rootRef = useRef<HTMLDivElement>(null)
+  const closePanels = useCallback(() => {
+    setOpenFilter(null)
+    setOpenPanel(null)
+  }, [])
+  useClickOutside(rootRef, closePanels, {
+    enabled: openFilter !== null || openPanel !== null,
+    ignoreSelector: TOUR_UI_SELECTOR,
+  })
+
+  const switchMode = (next: CanvasMode) => {
+    onModeChange(next)
+    setOpenFilter(null)
+    setOpenPanel(null)
+    onActiveToolChange(null)
+  }
+
+  const handleRulerClick = () => {
+    onToggleRuler()
+    setOpenFilter(null)
+    setOpenPanel(null)
+  }
+
+  const handleAnnotationClick = (
+    tool: AnnotationToolType | undefined,
+    panel: AnnotationPanel | undefined,
+  ) => {
+    if (tool && MINUTIA_TOOLS.includes(tool)) {
+      if (activeTool !== tool) {
+        onActiveToolChange(tool)
+        setOpenPanel('minutiaType')
+      } else if (openPanel === 'minutiaType') {
+        onActiveToolChange(null)
+        setOpenPanel(null)
+      } else {
+        setOpenPanel('minutiaType')
+      }
+      return
+    }
+    if (panel) {
+      setOpenPanel((open) => (open === panel ? null : panel))
+      return
+    }
+    if (!tool) return
+    onActiveToolChange(activeTool === tool ? null : tool)
+    if (openPanel === 'minutiaType') setOpenPanel(null)
+  }
+
+  const handleToolClick = (label: string, filterConfigs: FilterConfig[], panel?: ImagePanel) => {
+    if (panel === 'curve') {
+      setOpenFilter(null)
+      onToggleCurveWindow()
+      return
+    }
+    if (filterConfigs.length > 1) {
+      setOpenFilter((prev) => (prev === label ? null : label))
+      return
+    }
+
+    const { filterKey, inputType = 'slider', cycleValues } = filterConfigs[0]
+
+    if (inputType === 'toggle') {
+      const next = filters[filterKey] === 1 ? 0 : 1
+      onFiltersChange({ ...filters, [filterKey]: next })
+      return
+    }
+
+    if (inputType === 'cycle') {
+      const values = cycleValues ?? [0, 90, 180, 270]
+      const current = filters[filterKey] ?? 0
+      const idx = values.indexOf(current)
+      const next = values[(idx + 1) % values.length]
+      onFiltersChange({ ...filters, [filterKey]: next })
+      return
+    }
+
+    // slider — toggle panel open/closed
+    setOpenFilter((prev) => (prev === label ? null : label))
+  }
+
+  const openTool = IMAGE_TOOLS.find((tool) => tool.label === openFilter)
+
+  const isToolActive = (label: string, filterConfigs: FilterConfig[], panel?: ImagePanel) => {
+    if (panel === 'curve') return isCurveWindowOpen || !isIdentityCurve(curvePoints)
+    if (filterConfigs.length > 1) {
+      return (
+        openFilter === label ||
+        filterConfigs.some((config) => (filters[config.filterKey] ?? 0) !== 0)
+      )
+    }
+    const { filterKey, inputType = 'slider' } = filterConfigs[0]
+    if (inputType === 'toggle') return (filters[filterKey] ?? 0) === 1
+    if (inputType === 'cycle') return (filters[filterKey] ?? 0) !== 0
+    return openFilter === label
+  }
+
+  const isAnnotationActive = (tool: AnnotationToolType | undefined, panel: AnnotationPanel | undefined) =>
+    tool ? activeTool === tool : openPanel === panel
+
+  const displayedMinutiaType = selectedMinutiaType ?? activeMinutiaType
+
+  return (
+    <div ref={rootRef} className="flex flex-col items-center gap-2">
+      {openTool && (
+        <FilterPanel filterLabel={t(openTool.label)}>
+          {openTool.filters.map((config) => (
+            <FilterControl
+              key={config.filterKey}
+              config={config}
+              value={filters[config.filterKey] ?? 0}
+              onChange={(value) => onFiltersChange({ ...filters, [config.filterKey]: value })}
+            />
+          ))}
+        </FilterPanel>
+      )}
+      {mode === 'annotation' && openPanel === 'color' && (
+        <ColorPalette activeColor={activeColor} onSelect={onActiveColorChange} />
+      )}
+      {mode === 'annotation' && openPanel === 'minutiaType' && (
+        <MinutiaTypePalette
+          activeType={displayedMinutiaType}
+          onSelect={(minutiaType) => {
+            onActiveMinutiaTypeChange(minutiaType)
+            setOpenPanel(null)
+          }}
+        />
+      )}
+      {mode === 'annotation' && openPanel === 'markerSize' && (
+        <MarkerSizePalette
+          markRadius={markRadius}
+          longestSide={longestSide}
+          resolutionDpi={resolutionDpi}
+          onSelect={(radius) => {
+            onMarkRadiusChange(radius)
+            setOpenPanel(null)
+          }}
+        />
+      )}
+      <div className="flex items-center gap-1.5 rounded-md bg-blue-dark-1 px-2 py-1.5 text-white shadow-lg">
+        <div className="flex items-center gap-0.5 rounded-sm bg-white/25 p-0.5">
+          <ModeButton
+            icon="hand"
+            label={t('biometricImage.toolbar.modes.hand')}
+            isActive={mode === 'hand'}
+            onClick={() => switchMode('hand')}
+          />
+          <span data-tour={`mode-image-${type}`}>
+            <ModeButton
+              icon="image"
+              label={t('biometricImage.toolbar.modes.image')}
+              isActive={mode === 'image'}
+              onClick={() => switchMode('image')}
+            />
+          </span>
+          <span data-tour={`mode-annotation-${type}`}>
+            <ModeButton
+              icon="pen"
+              label={t('biometricImage.toolbar.modes.annotation')}
+              isActive={mode === 'annotation'}
+              onClick={() => switchMode('annotation')}
+            />
+          </span>
+        </div>
+        <ItemToolbar
+          icon={RULER_TOOL.icon}
+          label={t(RULER_TOOL.label)}
+          active={isRulerActive}
+          onClick={handleRulerClick}
+        />
+        <span className="h-6 w-px bg-white/25" />
+        {mode === 'image' &&
+          IMAGE_TOOLS.map(({ icon, label, filters: filterConfigs, panel, isExpertOnly }) => {
+            const isLocked = isExpertOnly === true && !isExpertCase
+            return (
+              <ItemToolbar
+                key={label}
+                icon={icon}
+                label={
+                  isLocked
+                    ? t('biometricImage.toolbar.expertLocked', { tool: t(label) })
+                    : t(label)
+                }
+                active={isToolActive(label, filterConfigs, panel)}
+                disabled={isLocked}
+                onClick={() => handleToolClick(label, filterConfigs, panel)}
+              />
+            )
+          })}
+        {mode === 'annotation' &&
+          ANNOTATION_TOOLS.map(({ icon, label, tool, panel }) => (
+            <div key={label} className="relative">
+              <ItemToolbar
+                icon={icon}
+                label={t(label)}
+                active={isAnnotationActive(tool, panel)}
+                onClick={() => handleAnnotationClick(tool, panel)}
+              />
+              {panel === 'color' && (
+                <span
+                  className="pointer-events-none absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border border-blue-dark-1"
+                  style={{ backgroundColor: activeColor }}
+                />
+              )}
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,386 @@
+import { InMemoryTraceReader } from '../../../infrastructure/persistence/in-memory-trace.reader';
+import { InMemoryImageStorageAdapter } from '../../../infrastructure/storage/in-memory-image-storage.adapter';
+import { ListTracesHandler } from './list-traces.handler';
+import { ListTracesQuery } from './list-traces.query';
+import { TraceDetailReadModel } from './trace-read-model';
+
+const traceRow = (
+  overrides: Partial<TraceDetailReadModel> = {},
+): TraceDetailReadModel => ({
+  id: 'trace-1',
+  number: 1,
+  reference: '3455-T1',
+  path: 'media/investigation-case/case-9/traces/trace-1.png',
+  status: 'RECEIVED',
+  cote: null,
+  caseId: 'case-9',
+  identified: false,
+  notIdentified: false,
+  sha256: null,
+  createdAt: new Date('2026-07-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+  captureWidth: null,
+  captureHeight: null,
+  capturedAt: null,
+  captureOrientation: null,
+  captureFocalLength: null,
+  captureDeviceModel: null,
+  sourceWidth: null,
+  sourceHeight: null,
+  withdrawnAt: null,
+  withdrawalMotive: null,
+  withdrawalMotiveDetail: null,
+  resolutionDpi: null,
+  markRadius: null,
+  origin: null,
+  location: null,
+  revelationTechnique: null,
+  hasLocationPhoto: false,
+  thumbPath: null,
+  locationPhoto: null,
+  ...overrides,
+});
+
+describe('ListTracesHandler', () => {
+  it("dit si chaque trace porte une photographie, sans en signer l'adresse", async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({
+        id: 'trace-1',
+        number: 1,
+        locationPhoto: {
+          id: 'photo-1',
+          path: 'media/investigation-case/case-9/location-photos/photo-1.png',
+          sha256: 'b'.repeat(64),
+          thumbPath: null,
+          sealedAt: new Date('2026-07-01T11:00:00.000Z'),
+        },
+      }),
+      traceRow({ id: 'trace-2', number: 2 }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data.map((trace) => trace.hasLocationPhoto)).toEqual([true, false]);
+    expect(data[0]).not.toHaveProperty('locationPhoto');
+  });
+
+  it('sert les dimensions du fichier de chaque trace', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ sourceWidth: 5485, sourceHeight: 2987 }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0]).toMatchObject({ sourceWidth: 5485, sourceHeight: 2987 });
+  });
+
+  it('sert des dimensions inconnues à null, jamais à zéro', async () => {
+    const reader = new InMemoryTraceReader([traceRow()]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0]).toMatchObject({ sourceWidth: null, sourceHeight: null });
+  });
+
+  it('adds a url derived from the path to each trace of the case', async () => {
+    const reader = new InMemoryTraceReader([traceRow()]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data).toHaveLength(1);
+    expect(data[0].path).toBe(
+      'media/investigation-case/case-9/traces/trace-1.png',
+    );
+    expect(data[0].url).toBe(
+      '/media/investigation-case/case-9/traces/trace-1.png',
+    );
+  });
+
+  it('signe l’adresse de la vignette de chaque trace', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({
+        thumbPath: 'media/investigation-case/case-9/traces/trace-1_thumb.webp',
+      }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].thumbUrl).toBe(
+      '/media/investigation-case/case-9/traces/trace-1_thumb.webp',
+    );
+  });
+
+  it('ne signe aucune vignette quand la trace n’en porte pas', async () => {
+    const reader = new InMemoryTraceReader([traceRow()]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].thumbUrl).toBeNull();
+    expect(data[0].url).toBe(
+      '/media/investigation-case/case-9/traces/trace-1.png',
+    );
+  });
+
+  it('exposes the capture metadata of each trace', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({
+        captureWidth: 3024,
+        captureHeight: 4032,
+        capturedAt: new Date('2026-08-18T10:12:00.000Z'),
+        captureOrientation: 6,
+        captureFocalLength: 6.86,
+        captureDeviceModel: 'iPhone 14 Pro',
+      }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0]).toMatchObject({
+      captureWidth: 3024,
+      captureHeight: 4032,
+      capturedAt: new Date('2026-08-18T10:12:00.000Z'),
+      captureOrientation: 6,
+      captureFocalLength: 6.86,
+      captureDeviceModel: 'iPhone 14 Pro',
+    });
+  });
+
+  it('leaves the capture metadata null for a trace uploaded without any', async () => {
+    const reader = new InMemoryTraceReader([traceRow()]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0]).toMatchObject({
+      captureWidth: null,
+      captureHeight: null,
+      capturedAt: null,
+      captureOrientation: null,
+      captureFocalLength: null,
+      captureDeviceModel: null,
+      sourceWidth: null,
+      sourceHeight: null,
+    });
+  });
+
+  it('exposes the calibrated resolution of a trace', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ resolutionDpi: 1207.34 }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].resolutionDpi).toBe(1207.34);
+  });
+
+  it('leaves the resolution empty for an uncalibrated trace', async () => {
+    const reader = new InMemoryTraceReader([traceRow()]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].resolutionDpi).toBeNull();
+  });
+
+  it('exposes the marker size set on a trace', async () => {
+    const reader = new InMemoryTraceReader([traceRow({ markRadius: 36 })]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].markRadius).toBe(36);
+  });
+
+  it('leaves the marker size empty for a trace nobody has set', async () => {
+    const reader = new InMemoryTraceReader([traceRow()]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].markRadius).toBeNull();
+  });
+
+  it('rend les traces dans l\u2019ordre de leurs numéros', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ id: 'trace-c', number: 3, reference: '3455-T3' }),
+      traceRow({ id: 'trace-a', number: 1, reference: '3455-T1' }),
+      traceRow({ id: 'trace-b', number: 2, reference: '3455-T2' }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data.map((trace) => trace.reference)).toEqual([
+      '3455-T1',
+      '3455-T2',
+      '3455-T3',
+    ]);
+  });
+
+  it('expose la référence composée et l\u2019état identifié de chaque trace', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ reference: '2026-00042-T50', number: 50, identified: true }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0]).toMatchObject({
+      number: 50,
+      reference: '2026-00042-T50',
+      identified: true,
+    });
+  });
+
+  it("cache l'identification du titulaire au vérificateur en mission", async () => {
+    const reader = new InMemoryTraceReader([traceRow({ identified: true })]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListTracesQuery('case-9', false, 'user-lucie'),
+    );
+
+    expect(data[0].identified).toBeNull();
+  });
+
+  it('cache la non-identification du titulaire au vérificateur en mission', async () => {
+    const reader = new InMemoryTraceReader([traceRow({ notIdentified: true })]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListTracesQuery('case-9', false, 'user-lucie'),
+    );
+
+    expect(data[0].notIdentified).toBeNull();
+  });
+
+  it('ne liste que les traces retirées quand on les demande', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow(),
+      traceRow({
+        id: 'trace-2',
+        withdrawnAt: new Date('2026-08-12T09:00:00.000Z'),
+        withdrawalMotive: 'DUPLICATE',
+        withdrawalMotiveDetail: null,
+      }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9', true));
+
+    expect(data.map((trace) => trace.id)).toEqual(['trace-2']);
+    expect(data[0].withdrawalMotive).toBe('DUPLICATE');
+    expect(data[0].url).toBeDefined();
+  });
+
+  it("hides the operator's exploitability declaration from a verifier in mission", async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ status: 'EXPLOITABLE', cote: 'A' }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListTracesQuery('case-9', false, 'user-lucie'),
+    );
+
+    expect(data[0].status).toBeNull();
+    expect(data[0].cote).toBeNull();
+  });
+
+  it('leaves the rest of the trace visible to a verifier in mission', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ status: 'EXPLOITABLE', captureWidth: 3024 }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListTracesQuery('case-9', false, 'user-lucie'),
+    );
+
+    expect(data[0]).toMatchObject({
+      id: 'trace-1',
+      captureWidth: 3024,
+      url: '/media/investigation-case/case-9/traces/trace-1.png',
+    });
+  });
+
+  it('keeps the declaration for the case operator', async () => {
+    const reader = new InMemoryTraceReader([
+      traceRow({ status: 'EXPLOITABLE', cote: 'A' }),
+    ]);
+    const handler = new ListTracesHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(new ListTracesQuery('case-9'));
+
+    expect(data[0].status).toBe('EXPLOITABLE');
+    expect(data[0].cote).toBe('A');
+  });
+});

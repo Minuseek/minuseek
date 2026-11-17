@@ -1,0 +1,1396 @@
+{
+  "common": {
+    "actions": {
+      "cancel": "Annuler",
+      "closeNotification": "Fermer la notification"
+    },
+    "errors": {
+      "generic": "Une erreur est survenue",
+      "loadFailed": "Impossible de charger les données"
+    },
+    "loading": "Chargement…",
+    "window": {
+      "reduce": "Réduire la fenêtre",
+      "expand": "Agrandir la fenêtre",
+      "close": "Fermer la fenêtre",
+      "showFiles": "Afficher l'import",
+      "hideFiles": "Masquer l'import",
+      "showLayers": "Afficher les calques",
+      "hideLayers": "Masquer les calques",
+      "showGrid": "Afficher la grille",
+      "hideGrid": "Masquer la grille",
+      "export": "Exporter l'image affichée",
+      "detachWindow": "Ouvrir dans une nouvelle fenêtre",
+      "attachWindow": "Fermer la fenêtre détachée",
+      "undo": "Annuler",
+      "redo": "Rétablir"
+    }
+  },
+  "navigation": {
+    "myCases": "Mes affaires",
+    "navigationLabel": "Navigation",
+    "backToCases": "Retour aux affaires",
+    "informations": "Informations",
+    "subjects": "Sujets",
+    "tracesAndFingerprints": "Traces & empreintes",
+    "history": "Historique",
+    "reports": "Rapports",
+    "home": "Accueil",
+    "serviceNavigation": "Navigation du service",
+    "cases": "Affaires",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "peerReviewCases": "Dossiers pairs",
+    "traces": "Traces",
+    "backToHome": "Retour à l'accueil"
+  },
+  "investigationCase": {
+    "status": {
+      "OPEN": "Ouverte",
+      "IN_PROGRESS": "En cours",
+      "UNDER_REVIEW": "En vérification",
+      "CLOSED": "Clôturée"
+    },
+    "workStatus": {
+      "start": "Mettre en cours",
+      "label": "Statut du dossier",
+      "changed": "Statut du dossier mis à jour"
+    },
+    "list": {
+      "title": "Vos affaires",
+      "subtitle": "Créez et retrouvez toutes vos affaires ici.",
+      "create": "Nouvelle affaire",
+      "addNew": "Ajouter une nouvelle affaire",
+      "tabs": {
+        "mine": "Mes affaires",
+        "verifications": "Mes vérifications",
+        "service": "Le service"
+      },
+      "emptyVerifications": "Aucune affaire à vérifier"
+    },
+    "card": {
+      "title": "Affaire N°{{caseNumber}}",
+      "pvNumber": "PV N°{{pvNumber}}",
+      "createdOn": "Créée le {{date}}"
+    },
+    "details": {
+      "title": "Affaire n°{{caseNumber}}",
+      "updatedAt": "Modifié le {{date}} à {{time}}",
+      "informations": "Informations",
+      "pvNumber": "Numéro de PV :",
+      "openedAt": "Date ouverture :",
+      "context": "Contexte",
+      "summary": "Résumé des faits :",
+      "tabs": {
+        "case": "Le dossier",
+        "recipient": "Destinataire"
+      },
+      "edit": "Modifier",
+      "operator": "Opérateur :",
+      "noOperator": "Non attribué"
+    },
+    "comparison": {
+      "title": "Comparaison - Affaire N°{{id}}",
+      "tracesWindow": "Traces",
+      "tracesWindowSelected": "Traces - {{label}}",
+      "referencePrintsWindow": "Empreintes",
+      "referencePrintsWindowSelected": "Empreintes - {{label}}",
+      "selectTrace": "Visualisez et éditez vos traces ici",
+      "selectReferencePrint": "Visualisez et éditez vos empreintes ici",
+      "analyzeButton": "Analyse IA",
+      "analyzeSuccessToast": "Les empreintes ont été réorganisées par pertinence par rapport à la trace sélectionnée !",
+      "analyzeUnavailableToast": "L'analyse automatique n'est pas configurée sur cette installation",
+      "analyzeErrorToast": "L'analyse automatique a échoué. Réessayez dans un instant.",
+      "analyzeUncalibratedTooltip": "Veuillez calibrer la résolution de votre trace pour lancer l'analyse",
+      "analyzeExcludedUncalibratedToast_one": "{{count}} empreinte non calibrée a été exclue de l'analyse",
+      "analyzeExcludedUncalibratedToast_other": "{{count}} empreintes non calibrées ont été exclues de l'analyse",
+      "hitLabel": "HIT",
+      "hitButton": "Déclarer un hit (cette empreinte correspond à cette trace)",
+      "hitButtonActive": "Hit déclaré — cliquer pour retirer",
+      "hitButtonDisabled": "Posez au moins 12 minuties sur la trace et sur l'empreinte pour déclarer un hit",
+      "hitInsufficientMinutiae": "12 minuties requises sur la trace et sur l'empreinte pour déclarer un hit",
+      "hitError": "Impossible de mettre à jour le hit",
+      "pairingLabel": "APPARIER",
+      "pairingButton": "Mode démonstration : apparier les minuties de la trace et de l'empreinte",
+      "pairingButtonActive": "Mode démonstration actif — cliquer pour quitter",
+      "pairingButtonDisabled": "Sélectionnez une trace et une empreinte pour apparier leurs minuties",
+      "pairingCount_one": "{{count}} paire",
+      "pairingCount_other": "{{count}} paires",
+      "pairingArmedHint": "Minutie sélectionnée — cliquez sa correspondante sur l'autre image",
+      "pairingCancelled": "Sélection annulée",
+      "pairingSameSideError": "Choisissez la minutie correspondante sur l'autre image",
+      "pairingMissHint": "Cliquez directement sur une minutie pour l'apparier",
+      "pairingCreated": "Paire {{number}} créée",
+      "pairingRemoved": "Paire retirée",
+      "pairingCreateError": "Impossible de créer la paire",
+      "pairingRemoveError": "Impossible de retirer la paire",
+      "pairingConflict": "Appariement refusé : une des deux minuties est déjà appariée, ou le dossier n'accepte plus de modification",
+      "pairingSideTrace": "la trace",
+      "pairingSideReference": "l'empreinte",
+      "pairingRequalifyTitle": "Requalifier la minutie ?",
+      "pairingRequalifyDescription": "La minutie de {{side}} est indéterminée : l'apparier la requalifiera en {{type}}, ainsi que les minuties déjà appariées avec elle.",
+      "pairingRequalifyConfirm": "Apparier et requalifier",
+      "pairingRequalifyTitleTyped": "Remplacer le type relevé ?",
+      "pairingRequalifyDescriptionTyped": "La minutie de {{side}} est relevée « {{currentType}} » et celle de {{otherSide}} « {{newType}} » : l'apparier remplacera « {{currentType}} » par « {{newType}} » sur {{side}}, et sur les minuties déjà appariées avec elle. Défaire la paire ne restituera pas « {{currentType}} ».",
+      "pairingRequalifyConfirmTyped": "Apparier et remplacer le type",
+      "concordanceButtonLabel": "DEMO",
+      "concordanceScreenLocked": "Atelier verrouillé pendant la démonstration",
+      "concordanceButton": "Rejouer la démonstration des concordances",
+      "concordanceButtonDisabledNoPairs": "Créez au moins une paire de minuties pour lancer la démonstration",
+      "concordanceButtonDisabledDetached": "Rattachez la fenêtre des empreintes pour lancer la démonstration",
+      "concordanceButtonDisabledPairingActive": "Quittez le mode appariement pour lancer la démonstration",
+      "concordancePauseButton": "Mettre en pause",
+      "concordanceResumeButton": "Reprendre la lecture",
+      "concordanceStopButton": "Quitter la démonstration",
+      "concordanceSpeedTitle": "Vitesse de lecture",
+      "concordanceSpeedOption": "Vitesse {{speed}}x",
+      "concordanceCounter": "{{current}}/{{total}}",
+      "recordButtonTitle": "Enregistrer la démonstration en vidéo (format {{format}})",
+      "recordButtonDisabledUnsupported": "L'enregistrement vidéo n'est pas pris en charge par ce navigateur",
+      "recordingIndicatorLabel": "REC",
+      "recordingCancelButton": "Annuler l'enregistrement",
+      "recordingSavedToast": "Vidéo de la démonstration enregistrée (format {{format}})",
+      "recordingAbortedToast": "Enregistrement interrompu : aucun fichier n'a été produit",
+      "recordingNotSealedToast": "Vidéo non déposée : elle n'a pas été scellée, rien n'a été téléchargé",
+      "videoCaption": {
+        "traceCote": "Trace papillaire cotée {{cote}}",
+        "traceNumber": "Trace n° {{number}}",
+        "named": "{{civility}} {{lastName}} {{firstName}}",
+        "civility": {
+          "MALE": "M.",
+          "FEMALE": "Mme"
+        },
+        "positionOf": "{{position}} de {{named}}",
+        "referencePrint": "Empreinte de référence",
+        "referencePrintOf": "Empreinte de référence de {{named}}"
+      },
+      "tour": {
+        "next": "Suivant",
+        "previous": "Précédent",
+        "done": "Terminé",
+        "restartLabel": "Revoir la visite guidée",
+        "steps": {
+          "welcome": {
+            "title": "Bienvenue dans l'atelier",
+            "text": "Ce tour rapide vous montre où sont les outils pour comparer une trace à une empreinte de référence."
+          },
+          "carousel": {
+            "title": "Vos traces",
+            "text": "Ce carrousel liste les traces de l'affaire. Cliquez sur une vignette pour l'ouvrir dans la fenêtre de gauche."
+          },
+          "import": {
+            "title": "Importer une trace",
+            "text": "Ce bouton ajoute une nouvelle trace à l'affaire."
+          },
+          "imageSettings": {
+            "title": "Réglages de l'image",
+            "text": "Ce mode regroupe la luminosité, le contraste et les autres réglages qui n'affectent que l'affichage de l'image."
+          },
+          "annotationMode": {
+            "title": "Annoter l'image",
+            "text": "Ce mode permet de poser des minuties ou de tracer des repères sur l'image. Choisissez un outil avant de cliquer dans l'image."
+          },
+          "exploitability": {
+            "title": "Exploitabilité de la trace",
+            "text": "Ce menu déclare la trace exploitable ou non, et si elle n'a mené à aucune identification."
+          },
+          "history": {
+            "title": "Annuler / rétablir",
+            "text": "Ces flèches annulent ou rétablissent votre dernière annotation ou réglage sur cette image."
+          },
+          "layers": {
+            "title": "Calques",
+            "text": "Ce bouton affiche les annotations posées, pour les revoir ou les masquer."
+          },
+          "analyze": {
+            "title": "Analyse automatique",
+            "text": "Ce bouton propose un classement des empreintes les plus proches de la trace : c'est une aide au tri, la conclusion reste celle de l'opérateur."
+          },
+          "pairing": {
+            "title": "Apparier les minuties",
+            "text": "Ce mode démonstration fait correspondre manuellement les minuties de la trace et de l'empreinte, pour ensuite rejouer la concordance."
+          },
+          "match": {
+            "title": "Déclarer une correspondance",
+            "text": "Ce bouton se débloque une fois douze minuties concordantes posées sur la trace et sur l'empreinte."
+          }
+        }
+      }
+    },
+    "form": {
+      "createTitle": "Nouvelle affaire",
+      "createDescription": "Renseignez les informations de la nouvelle affaire.",
+      "sections": {
+        "general": "Informations générales",
+        "context": "Contexte",
+        "operator": "Opérateur"
+      },
+      "submit": "Créer l'affaire",
+      "submitting": "Création…",
+      "fields": {
+        "caseNumber": {
+          "label": "Numéro d'affaire",
+          "placeholder": "123456"
+        },
+        "pvNumber": {
+          "label": "Numéro de PV",
+          "placeholder": "2026/123456"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Décrivez l'affaire..."
+        },
+        "location": {
+          "label": "Localisation",
+          "placeholder": "ex : 8 rue des Exemples, 00000 Ville-Démo"
+        },
+        "operator": {
+          "label": "Opérateur en charge de l'affaire",
+          "hint": "Choisir un collègue lui confie le suivi de l'affaire.",
+          "loading": "Chargement des comptes du service…",
+          "searchLabel": "Rechercher un compte du service",
+          "searchPlaceholder": "Rechercher un nom ou un matricule…",
+          "noResult": "Aucun compte ne correspond à cette recherche.",
+          "moreResults": "Seuls les {{count}} premiers comptes sont affichés, précisez la recherche.",
+          "noCandidate": "Aucun autre compte actif dans ce service.",
+          "unavailable": "Impossible de charger les comptes du service.",
+          "unassigned": "Non attribué"
+        }
+      },
+      "editTitle": "Modifier l'affaire",
+      "editDescription": "Corrigez les informations de l'affaire n°{{caseNumber}}.",
+      "editSubmit": "Enregistrer",
+      "editSubmitting": "Enregistrement…"
+    },
+    "validation": {
+      "caseNumberRequired": "Le numéro d'affaire est requis",
+      "pvNumberRequired": "Le numéro de PV est requis",
+      "locationRequired": "La localisation est requise"
+    },
+    "success": {
+      "created": "Affaire créée avec succès",
+      "corrected": "Affaire modifiée"
+    },
+    "handoverDialog": {
+      "title": "Confier cette affaire ?",
+      "description": "{{name}} devient l'opérateur de cette affaire et en assure le suivi.",
+      "descriptionLosingAccess": "{{name}} devient l'opérateur de cette affaire. Vous n'y aurez plus accès : vous serez renvoyé vers la liste des affaires.",
+      "confirm": "Confier l'affaire"
+    },
+    "errors": {
+      "correctionFailed": "Impossible d'enregistrer ces modifications",
+      "unknownOperator": "Le compte désigné n'existe pas dans ce service, ou y est désactivé",
+      "operatorChangeNotAllowed": "Seuls l'opérateur en place et le responsable de service peuvent confier cette affaire",
+      "caseNotFound": "Cette affaire est introuvable",
+      "caseClosed": "Cette affaire est close : elle n'est plus modifiable",
+      "noLongerAccessible": "Cette affaire ne vous est plus accessible"
+    },
+    "withdrawn": {
+      "title": "Pièces retirées du dossier",
+      "withdrawnAt": "Retirée le {{date}} — {{motive}}",
+      "kind": {
+        "traces": "Trace",
+        "reference-prints": "Empreinte de référence"
+      }
+    },
+    "expertise": {
+      "declare": "Déclarer une expertise",
+      "dialogTitle": "Déclarer ce dossier en expertise",
+      "dialogDescription": "Le texte ci-dessous est archivé mot pour mot au moment où vous le validez. Il ne pourra plus être modifié.",
+      "courtLabel": "Juridiction qui vous a commis",
+      "courtPlaceholder": "Tribunal judiciaire de Paris",
+      "oathHeading": "Prestation de serment d'un expert (articles 157 et 160 du Code de procédure pénale)",
+      "oathFormula": "Je soussigné {{expert}}, {{grade}} en fonction au {{service}}, expert désigné pour procéder aux opérations prévues dans l'ordonnance de commission d'expert de {{court}}, après avoir pris connaissance de la mission qui m'est confiée, prête serment de bien et fidèlement la remplir en mon honneur et conscience.",
+      "engagementLabel": "Je prête ce serment en mon honneur et conscience, et j'engage ma responsabilité d'expert sur ce dossier.",
+      "confirmAction": "Prêter serment et déclarer",
+      "declared": "Dossier déclaré en expertise, serment prêté",
+      "bannerTitle": "Expertise judiciaire",
+      "bannerDetail": "Serment prêté par {{expert}} le {{date}} devant {{court}}.",
+      "unknownExpert": "un compte supprimé"
+    },
+    "closure": {
+      "close": "Clore le dossier",
+      "reopen": "Rouvrir le dossier",
+      "confirmTitle": "Clore le dossier n°{{caseNumber}} ?",
+      "confirmDescription": "Le travail technique est déclaré terminé. Le dossier reste consultable, mais plus aucune pièce ne peut y être déposée ni modifiée. Les rapports déjà édités ne sont pas modifiés.",
+      "confirmAction": "Clore",
+      "reasonLabel": "Motif de la réouverture",
+      "reasonPlaceholder": "Réquisition complémentaire du 12 septembre 2026",
+      "destroyedPrintsWarning": "Les empreintes de familiers détruites à la clôture ne sont pas restituées.",
+      "banner": "Dossier clos — consultation seule",
+      "closed": "Dossier clos",
+      "reopened": "Dossier rouvert",
+      "familiarPrintsDestroyed": "{{count}} empreinte(s) de familiers seront détruites définitivement.",
+      "detachedPrintsKept": "{{count}} empreinte(s) non rattachée(s) à une personne ne sont pas concernées.",
+      "recordsKept": "Les fiches des personnes et les rapports déjà édités ne sont pas modifiés.",
+      "destroyedPrintRefused": "Cette empreinte a été détruite : elle ne peut plus être comparée."
+    },
+    "judicialHeader": {
+      "title": "En-tête judiciaire",
+      "complete": "Compléter l'en-tête judiciaire",
+      "notProvided": "Non renseigné",
+      "offenseOn": "le {{date}}",
+      "offenseBetween": "entre le {{from}} et le {{to}}",
+      "fields": {
+        "requestDate": {
+          "label": "Date de la demande d'intervention"
+        },
+        "requesterQuality": {
+          "label": "Qualité du requérant",
+          "placeholder": "Brigadier-Chef de Police"
+        },
+        "requesterName": {
+          "label": "Nom du requérant",
+          "placeholder": "MARCHAND Claire"
+        },
+        "requesterService": {
+          "label": "Service du requérant",
+          "placeholder": "3e District de Police Judiciaire de la D.R.P.J de Paris"
+        },
+        "offenseNature": {
+          "label": "Nature de l'infraction",
+          "placeholder": "Vol par effraction"
+        },
+        "offenseLocation": {
+          "label": "Lieu des faits",
+          "placeholder": "8 rue des Exemples à Ville-Démo"
+        },
+        "offenseDateFrom": {
+          "label": "Date des faits"
+        },
+        "offenseDateTo": {
+          "label": "Fin de la période (si les faits couvrent plusieurs jours)"
+        },
+        "interventionDate": {
+          "label": "Date d'intervention"
+        },
+        "caseAgainst": {
+          "label": "Affaire contre",
+          "placeholder": "X",
+          "hint": "Portez X lorsque l'auteur est inconnu."
+        }
+      },
+      "validation": {
+        "offensePeriodReversed": "La fin de la période ne peut pas précéder la date des faits.",
+        "offensePeriodWithoutStart": "Une fin de période suppose une date des faits."
+      }
+    },
+    "recipient": {
+      "title": "Destinataire du rapport",
+      "choose": "Choisir le destinataire",
+      "fromBook": "Reprendre un destinataire enregistré",
+      "fromBookPlaceholder": "Choisir une fiche du carnet",
+      "oneOff": "Saisie ponctuelle",
+      "bookEmpty": "Le carnet du service est vide.",
+      "attentionLine": "À l'attention de {{quality}} {{name}}",
+      "notProvided": "Non renseigné",
+      "saveToBook": "Enregistrer ce destinataire dans le carnet",
+      "removeFromBook": "Retirer ce destinataire du carnet",
+      "removedFromBook": "Destinataire retiré du carnet",
+      "saved": "Destinataire enregistré",
+      "saveFailed": "Impossible d'enregistrer le destinataire",
+      "bookSaveFailed": "Impossible d'enregistrer ce destinataire dans le carnet",
+      "bookRemoveFailed": "Impossible de retirer ce destinataire du carnet",
+      "fields": {
+        "authority": {
+          "label": "Autorité destinataire",
+          "placeholder": "Le Commissaire Général, chef du 3e District de Police Judiciaire de la D.R.P.J de Paris"
+        },
+        "attentionQuality": {
+          "label": "À l'attention de — qualité",
+          "placeholder": "Brigadier-Chef de Police"
+        },
+        "attentionName": {
+          "label": "À l'attention de — nom",
+          "placeholder": "MARCHAND Claire"
+        }
+      },
+      "validation": {
+        "authorityRequired": "L'autorité destinataire est obligatoire."
+      }
+    }
+  },
+  "verification": {
+    "status": {
+      "PENDING": "Vérification en cours",
+      "CONCORDANT": "Vérification concordante",
+      "DISCORDANT": "Vérification discordante"
+    },
+    "section": {
+      "title": "Vérification par pair technique",
+      "none": "Personne ne vérifie ce dossier pour l'instant.",
+      "removedAccount": "Compte supprimé du service",
+      "requestedOn": "confiée le {{date}}",
+      "pickerLabel": "Collègue à qui confier la vérification",
+      "entrust": "Confier une vérification",
+      "divergence": "Divergence — un troisième examen est nécessaire"
+    },
+    "entrust": {
+      "success": "Vérification confiée.",
+      "refusals": {
+        "unknownVerifier": "Ce compte n'existe pas dans le service, y est désactivé, ou est l'opérateur de l'affaire.",
+        "notAllowed": "Seul l'opérateur de l'affaire ou un responsable de service peut y confier une vérification.",
+        "caseNotFound": "Affaire introuvable.",
+        "caseClosedOrAlreadyPending": "L'affaire est close, ou ce collègue la vérifie déjà.",
+        "unexpected": "La vérification n'a pas pu être confiée."
+      }
+    },
+    "toVerify": {
+      "title": "Dossiers pairs",
+      "subtitle": "Les dossiers dont la relecture vous a été confiée.",
+      "empty": "Aucun dossier pair ne vous est confié pour l'instant.",
+      "caseNumber": "Affaire n°{{caseNumber}}"
+    },
+    "blindBanner": "Vérification en aveugle : vous ne voyez ni les calques, ni les identifications, ni les déclarations de l'opérateur du dossier.",
+    "conclusions": {
+      "title": "Mes conclusions",
+      "exploitable": "Exploitable",
+      "notExploitable": "Inexploitable",
+      "identificationLabel": "Empreinte de référence identifiée",
+      "notIdentified": "Non identifiée",
+      "validate": "Valider ma vérification",
+      "missing": "Il manque {{missingCount}} conclusion(s) de trace",
+      "completed": "Vérification validée.",
+      "completeFailed": "La vérification n'a pas pu être validée.",
+      "saveFailed": "La conclusion n'a pas pu être enregistrée.",
+      "concordant": "Vos conclusions rejoignent celles de l'opérateur du dossier.",
+      "discordant": "Divergence sur : {{traces}}. Un troisième examen est nécessaire.",
+      "revisable": "Vous pouvez encore revenir sur une conclusion tant que le dossier est ouvert : la confrontation est rejouée à chaque fois."
+    }
+  },
+  "subject": {
+    "sex": {
+      "MALE": "Homme",
+      "FEMALE": "Femme"
+    },
+    "type": {
+      "CLOSE_ASSOCIATE": "Familier",
+      "PERSON_OF_INTEREST": "Mis en cause",
+      "VICTIM": "Victime"
+    },
+    "list": {
+      "title": "Sujets de l'affaire n°{{caseNumber}}",
+      "summary": "{{victims}}, {{closeAssociates}} et {{personsOfInterest}}",
+      "closeAssociateCount_one": "{{count}} familier",
+      "closeAssociateCount_other": "{{count}} familiers",
+      "personOfInterestCount_one": "{{count}} mis en cause",
+      "personOfInterestCount_other": "{{count}} mis en cause",
+      "add": "Ajouter un sujet",
+      "closeAssociates": "Familiers",
+      "personsOfInterest": "Mis en cause",
+      "empty": "Aucun sujet pour l'instant",
+      "bornOn": "Né.e le {{date}}",
+      "victimCount_one": "{{count}} victime",
+      "victimCount_other": "{{count}} victimes",
+      "victims": "Victimes"
+    },
+    "details": {
+      "back": "Retour aux sujets",
+      "createdAt": "Créé.e le {{date}}",
+      "informations": "Informations personnelles",
+      "birthDate": "Date de naissance :",
+      "birthPlace": "Lieu de naissance :",
+      "sex": "Genre :",
+      "phone": "Téléphone :",
+      "firstParent": "Parent 1 :",
+      "secondParent": "Parent 2 :",
+      "notProvided": "Non renseigné"
+    },
+    "prints": {
+      "title": "Empreintes",
+      "leftHand": "Main gauche",
+      "rightHand": "Main droite",
+      "positions": {
+        "THUMB": "Pouce",
+        "INDEX": "Index",
+        "MIDDLE": "Majeur",
+        "RING": "Annulaire",
+        "LITTLE": "Auriculaire",
+        "PALM": "Paume"
+      },
+      "import": "Importer l'empreinte : {{position}}",
+      "printLabel": "{{name}} - {{position}}",
+      "fullPositions": {
+        "LEFT_THUMB": "Pouce gauche",
+        "LEFT_INDEX": "Index gauche",
+        "LEFT_MIDDLE": "Majeur gauche",
+        "LEFT_RING": "Annulaire gauche",
+        "LEFT_LITTLE": "Auriculaire gauche",
+        "LEFT_PALM": "Paume gauche",
+        "RIGHT_THUMB": "Pouce droit",
+        "RIGHT_INDEX": "Index droit",
+        "RIGHT_MIDDLE": "Majeur droit",
+        "RIGHT_RING": "Annulaire droit",
+        "RIGHT_LITTLE": "Auriculaire droit",
+        "RIGHT_PALM": "Paume droite"
+      },
+      "withdraw": "Retirer du dossier l’empreinte {{position}}"
+    },
+    "form": {
+      "createTitle": "Nouveau sujet",
+      "createDescription": "Renseignez les informations du nouveau sujet.",
+      "sections": {
+        "general": "Informations générales",
+        "parents": "Parents"
+      },
+      "submit": "Créer le sujet",
+      "submitting": "Création…",
+      "fields": {
+        "lastName": {
+          "label": "Nom",
+          "placeholder": "Dupont"
+        },
+        "firstName": {
+          "label": "Prénom",
+          "placeholder": "Camille"
+        },
+        "birthDate": {
+          "label": "Date de naissance"
+        },
+        "birthPlace": {
+          "label": "Lieu de naissance",
+          "placeholder": "Lyon"
+        },
+        "sex": {
+          "label": "Genre",
+          "placeholder": "Choisissez une option"
+        },
+        "phoneNumber": {
+          "label": "Numéro de téléphone",
+          "placeholder": "0612345678"
+        },
+        "type": {
+          "label": "Type de sujet",
+          "placeholder": "Choisissez une option"
+        },
+        "firstParentName": {
+          "label": "Parent 1",
+          "placeholder": "Marie Dupont"
+        },
+        "secondParentName": {
+          "label": "Parent 2",
+          "placeholder": "Pierre Dupont"
+        }
+      }
+    },
+    "validation": {
+      "lastNameRequired": "Le nom est requis",
+      "firstNameRequired": "Le prénom est requis",
+      "sexRequired": "Le genre est requis",
+      "typeRequired": "Le type de sujet est requis"
+    },
+    "success": {
+      "created": "Sujet créé avec succès"
+    }
+  },
+  "trace": {
+    "list": {
+      "title": "Traces de l'affaire n°{{caseNumber}}",
+      "summary_one": "{{count}} trace, dont {{identified}} identifiée",
+      "summary_other": "{{count}} traces, dont {{identified}} identifiées",
+      "summaryWithoutState_one": "{{count}} trace",
+      "summaryWithoutState_other": "{{count}} traces",
+      "empty": "Aucune trace n'a encore été déposée dans cette affaire.",
+      "columns": {
+        "number": "N°",
+        "image": "Trace",
+        "origin": "Origine",
+        "location": "Localisation",
+        "locationPhoto": "Loc.",
+        "revelation": "Révélation",
+        "state": "État",
+        "depositedOn": "Déposée le",
+        "actions": "Actions"
+      }
+    },
+    "state": {
+      "identified": "Identifiée",
+      "notIdentified": "Non identifiée",
+      "cote": "Cote {{cote}}",
+      "notExploitable": "Inexploitable",
+      "toQualify": "À qualifier"
+    },
+    "exploitability": {
+      "title": "Exploitabilité",
+      "exploitable": "Exploitable",
+      "exploitableShort": "Exp",
+      "notExploitable": "Inexploitable",
+      "notExploitableShort": "Inex",
+      "notIdentified": "Non identifiée",
+      "notIdentifiedShort": "N.I.",
+      "notIdentifiedAria": "Aucune concordance relevée",
+      "withdrawNotIdentified": "Retirer la déclaration de non-identification",
+      "coteAria": "Trace cotée {{cote}}",
+      "hint": "La cote est attribuée automatiquement aux traces exploitables, dans l'ordre de leur numéro.",
+      "notIdentifiedHint": "Déclarez « non identifiée » lorsque vous avez comparé la trace à toutes les empreintes de référence du dossier sans relever de concordance. Tant que rien n'est déclaré, le rapport écrit « non examinée ».",
+      "success": "Exploitabilité enregistrée. Les cotes ont été mises à jour.",
+      "error": "L'enregistrement a échoué",
+      "notIdentifiedSuccess": "Déclaration enregistrée",
+      "notIdentifiedError": "L'enregistrement a échoué",
+      "withdrawNotIdentifiedSuccess": "Déclaration retirée",
+      "withdrawNotIdentifiedError": "Le retrait a échoué"
+    },
+    "panel": {
+      "title": "Fiche de la trace",
+      "open": "Voir la fiche de la trace",
+      "openInComparator": "Ouvrir dans le comparateur",
+      "close": "Fermer le panneau",
+      "depositedAt": "Déposée le {{date}} à {{time}}",
+      "informations": "Informations",
+      "notProvided": "Non renseigné",
+      "unknown": "Cette trace n'existe pas ou n'appartient pas à cette affaire."
+    },
+    "origin": {
+      "DIGITAL": "Digitale",
+      "PALMAR": "Palmaire"
+    },
+    "technique": {
+      "OPTICAL_PROCESS": "Procédé optique",
+      "FINGERPRINT_POWDER": "Poudre dactyloscopique",
+      "DFO": "DFO",
+      "NINHYDRIN": "Ninhydrine"
+    },
+    "description": {
+      "edit": "Modifier",
+      "submit": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "fields": {
+        "origin": {
+          "label": "Origine",
+          "placeholder": "Choisir l'origine de la trace"
+        },
+        "location": {
+          "label": "Localisation",
+          "placeholder": "ex : Sur la face extérieure de la porte-fenêtre du séjour"
+        },
+        "revelationTechnique": {
+          "label": "Révélation",
+          "placeholder": "Choisir la technique de révélation"
+        }
+      },
+      "success": "Fiche de la trace enregistrée",
+      "error": "L'enregistrement de la fiche a échoué"
+    },
+    "locationPhoto": {
+      "title": "Photographie de localisation",
+      "alt": "Photographie de l'endroit où la trace a été relevée",
+      "empty": "Aucune photographie de localisation n'a été versée pour cette trace.",
+      "present": "Photographie de localisation versée",
+      "absent": "Aucune photographie de localisation",
+      "add": "Ajouter une photographie de localisation",
+      "replace": "Remplacer",
+      "remove": "Retirer",
+      "sealedAt": "Versée le {{date}} à {{time}}",
+      "acceptedFormats": "Formats acceptés : PNG, JPEG, TIFF.",
+      "removeTitle": "Retirer cette photographie ?",
+      "removeDescription": "Elle sera retirée du dossier, et ce retrait sera inscrit au journal des actes. Vous pourrez en verser une autre.",
+      "replaceTitle": "Remplacer cette photographie ?",
+      "replaceDescription": "La photographie actuelle sera retirée du dossier, et ce retrait sera inscrit au journal des actes. Vous choisirez ensuite celle qui la remplace.",
+      "attachSuccess": "Photographie de localisation versée au dossier",
+      "attachError": "Le versement de la photographie a échoué",
+      "alreadyAttached": "Cette trace porte déjà une photographie de localisation. Retirez-la avant d'en verser une autre.",
+      "removeSuccess": "Photographie de localisation retirée du dossier",
+      "removeError": "Le retrait de la photographie a échoué"
+    },
+    "validation": {
+      "originRequired": "L'origine est obligatoire",
+      "locationRequired": "La localisation est obligatoire",
+      "locationTooLong": "La localisation ne peut pas dépasser {{max}} caractères",
+      "revelationTechniqueRequired": "La technique de révélation est obligatoire"
+    }
+  },
+  "biometricImage": {
+    "import": {
+      "traces": "Importer vos traces ici",
+      "referencePrints": "Importer vos empreintes ici",
+      "button": "Importer",
+      "uploading": "Envoi…",
+      "progress": "Envoi {{current}}/{{total}}…",
+      "imported_one": "{{count}} image importée",
+      "imported_other": "{{count}} images importées",
+      "failed_one": "{{count}} image n'a pas pu être importée : {{files}}",
+      "failed_other": "{{count}} images n'ont pas pu être importées : {{files}}",
+      "busy": "Un import est déjà en cours"
+    },
+    "drop": {
+      "hovered": "Relâchez pour importer",
+      "rejected": "Seules les images PNG, JPEG et TIFF peuvent être importées"
+    },
+    "upload": {
+      "success": "Image importée avec succès",
+      "error": "L'import a échoué"
+    },
+    "zoom": {
+      "in": "Zoomer",
+      "out": "Dézoomer",
+      "recenter": "Recentrer l'image"
+    },
+    "layers": {
+      "title": "Calques",
+      "close": "Fermer le panneau des calques",
+      "empty": "Aucun calque pour cette image",
+      "createError": "Impossible de créer le calque",
+      "updateError": "Impossible de mettre à jour le calque",
+      "deleteError": "Impossible de supprimer le calque"
+    },
+    "pairing": {
+      "deleteTitle": "Supprimer une minutie appariée ?",
+      "deleteDescription": "Cette minutie forme la paire {{number}} : la supprimer défera aussi la paire.",
+      "deleteConfirm": "Supprimer la minutie",
+      "typeChangeTitle": "Requalifier une minutie appariée ?",
+      "typeChangeDescription": "Cette minutie forme la paire {{number}} : la passer en {{type}} changera aussi le type de la minutie correspondante sur l'autre image.",
+      "typeChangeConfirm": "Requalifier la paire"
+    },
+    "toolbar": {
+      "modes": {
+        "hand": "Déplacement",
+        "image": "Édition",
+        "annotation": "Annotations"
+      },
+      "expertLocked": "{{tool}} — réglage d'expert : déclarez le dossier en expertise pour l'utiliser.",
+      "expertCaseBanner": "Expertise judiciaire",
+      "tools": {
+        "mirror": "Miroir",
+        "rotation": "Rotation",
+        "luminosity": "Luminosité",
+        "contrast": "Contraste",
+        "invertColors": "Inversion chromatique",
+        "saturation": "Saturation",
+        "channels": "Isolation des canaux",
+        "channelRed": "Masquer le canal rouge",
+        "channelGreen": "Masquer le canal vert",
+        "channelBlue": "Masquer le canal bleu",
+        "levels": "Niveaux",
+        "levelsBlack": "Point noir",
+        "levelsGamma": "Gamma",
+        "levelsWhite": "Point blanc",
+        "sharpening": "Netteté locale",
+        "curve": "Courbe tonale",
+        "palette": "Palette de couleurs",
+        "point": "Point",
+        "pointArrow": "Point & flèche",
+        "pencil": "Crayon",
+        "ruler": "Règle",
+        "minutiaType": "Type de minutie",
+        "markerSize": "Taille des repères"
+      },
+      "curve": {
+        "hint": "Cliquer pour ajouter un point, double-cliquer pour le retirer",
+        "readout": "{{input}} → {{output}}",
+        "reset": "Réinitialiser"
+      }
+    },
+    "markerSize": {
+      "steps": {
+        "xSmall": "Très petits",
+        "small": "Petits",
+        "medium": "Moyens",
+        "large": "Grands",
+        "xLarge": "Très grands"
+      },
+      "diameter": "⌀ {{value}} mm sur la peau",
+      "success": "Taille des repères enregistrée",
+      "error": "L'enregistrement de la taille des repères a échoué"
+    },
+    "minutia": {
+      "types": {
+        "RIDGE_ENDING": "arrêt de ligne",
+        "BIFURCATION": "bifurcation",
+        "TRIFURCATION": "trifurcation",
+        "ISLAND": "îlot",
+        "ENCLOSURE": "anneau",
+        "UNDETERMINED": "indéterminée"
+      }
+    },
+    "calibration": {
+      "title": "Calibrer la résolution",
+      "description": "Cliquez deux graduations de la règle photographiée, puis indiquez la distance réelle qui les sépare.",
+      "distanceLabel": "Distance réelle (mm)",
+      "distancePlaceholder": "Ex. 10",
+      "resolutionDeduced": "Résolution déduite : {{value}} points par pouce",
+      "outOfRange": "{{value}} points par pouce est hors de l'intervalle accepté (50 à 10 000)",
+      "validate": "Calibrer",
+      "manualEntry": "Saisir la résolution",
+      "success": "Image calibrée",
+      "error": "Le calibrage a échoué",
+      "uncalibratedBadge": "Non calibrée"
+    },
+    "scaleBar": {
+      "label": "1 cm",
+      "uncalibrated": "Image non calibrée"
+    },
+    "imageSize": {
+      "title": "Taille d'image",
+      "width": "Largeur",
+      "height": "Hauteur",
+      "resolutionX": "Résolution X",
+      "resolutionY": "Résolution Y",
+      "pxPerCm": "px/cm",
+      "reset": "Réinitialiser",
+      "validate": "Valider",
+      "outOfRange": "{{value}} points par pouce est hors de l'intervalle accepté (50 à 10 000)",
+      "chip": "{{value}} px/cm",
+      "chipUncalibrated": "Non calibrée",
+      "calibrateWithRuler": "Mesurer l'échelle sur la règle photographiée"
+    },
+    "withdraw": {
+      "success": "Pièce retirée du dossier",
+      "error": "Le retrait a échoué",
+      "aria": "Retirer {{label}} du dossier",
+      "confirmTitle": "Retirer cette pièce du dossier ?",
+      "confirmDescription": "La pièce sort du dossier de travail. Elle reste consultable dans les pièces retirées et pourra être rétablie. Le fichier n'est pas détruit.",
+      "motiveLabel": "Motif du retrait",
+      "detailLabel": "Précisez le motif",
+      "detailPlaceholder": "ex : relevée sur un scellé rattaché à une autre procédure",
+      "detailHint": "Cette phrase est inscrite au journal des actes et imprimée telle quelle dans le rapport.",
+      "confirmAction": "Retirer du dossier"
+    },
+    "restore": {
+      "action": "Rétablir",
+      "success": "Pièce rétablie",
+      "error": "Le rétablissement a échoué"
+    },
+    "destroyed": {
+      "label": "Empreinte détruite le {{date}}",
+      "explanation": "Empreinte d'un familier, détruite à la clôture du dossier : ces empreintes ne sont relevées que pour écarter ses traces de l'enquête, et ne sont pas conservées ensuite."
+    },
+    "nav": {
+      "previous": "Voir les images précédentes",
+      "next": "Voir les images suivantes"
+    },
+    "export": {
+      "failed": "L'export a échoué"
+    }
+  },
+  "auth": {
+    "connecting": "Connexion en cours…",
+    "logout": "Déconnexion",
+    "account": "Compte",
+    "tenantRequired": {
+      "title": "Organisation requise",
+      "message": "Accédez à l'application via l'adresse de votre organisation."
+    },
+    "error": "Impossible de contacter le service d'authentification."
+  },
+  "auditTrail": {
+    "title": "Historique du dossier",
+    "subtitle": "Chronologie des actes enregistrés, du plus récent au plus ancien.",
+    "empty": "Aucun événement enregistré pour ce dossier.",
+    "entry": {
+      "byline": "par {{actor}} — le {{date}} à {{time}}",
+      "showDetail": "Voir le détail",
+      "hideDetail": "Masquer le détail"
+    },
+    "evidenceClass": {
+      "OBSERVED": "Observé",
+      "DECLARED": "Déclaré"
+    },
+    "eventType": {
+      "TENANT_PROVISIONED": "Laboratoire créé",
+      "CASE_OPENED": "Dossier ouvert",
+      "CASE_STATUS_CHANGED": "Statut du dossier modifié",
+      "CASE_OPERATOR_CHANGED": "Dossier confié à un autre opérateur",
+      "CASE_UPDATED": "Informations du dossier corrigées",
+      "CASE_EXPERTISE_DECLARED": "Dossier déclaré en expertise, serment prêté",
+      "CASE_SAISINE_UPDATED": "Saisine du dossier complétée",
+      "TRACE_UPLOADED": "Trace déposée",
+      "TRACE_QUALIFIED": "Trace qualifiée",
+      "TRACE_NOT_IDENTIFIED": "Trace déclarée non identifiée",
+      "TRACE_DELETED": "Trace retirée du dossier",
+      "REFERENCE_PRINT_UPLOADED": "Empreinte de référence déposée",
+      "REFERENCE_PRINT_DELETED": "Empreinte de référence retirée du dossier",
+      "LAYER_CREATED": "Calque ajouté",
+      "LAYER_UPDATED": "Calque modifié",
+      "LAYER_DELETED": "Calque supprimé",
+      "COMPARISON_EXECUTED": "Comparaison lancée",
+      "HIT_RECORDED": "Correspondance déclarée",
+      "HIT_REMOVED": "Identification retirée",
+      "REPORT_GENERATED": "Rapport généré",
+      "CHAIN_ANCHORED": "Chaîne horodatée",
+      "TRACE_RESTORED": "Trace rétablie au dossier",
+      "REFERENCE_PRINT_RESTORED": "Empreinte de référence rétablie au dossier",
+      "REFERENCE_PRINT_IMAGE_DESTROYED": "Empreinte de familier détruite",
+      "SERVICE_HEADER_SAVED": "En-tête du service enregistré",
+      "TRACE_CALIBRATED": "Trace calibrée",
+      "REFERENCE_PRINT_CALIBRATED": "Empreinte de référence calibrée",
+      "CASE_VERIFICATION_REQUESTED": "Vérification confiée à un pair technique",
+      "VERIFICATION_CONCLUSION_STATED": "Conclusion du vérificateur énoncée",
+      "CASE_VERIFICATION_COMPLETED": "Vérification close",
+      "TRACE_DESCRIBED": "Fiche de la trace renseignée",
+      "TRACE_LOCATION_STATED": "Localisation consignée sur le terrain",
+      "LOCATION_PHOTO_UPLOADED": "Photographie de localisation versée",
+      "LOCATION_PHOTO_DELETED": "Photographie de localisation retirée",
+      "SUBJECT_REGISTERED": "Personne déclarée au dossier",
+      "CONCORDANCE_VIDEO_DEPOSITED": "Vidéo de démonstration des concordances déposée sous scellé",
+      "MARK_RADIUS_SET": "Taille des repères de la pièce réglée",
+      "EXPORTED_IMAGE_DEPOSITED": "Image exportée déposée sous scellé",
+      "MINUTIA_PAIRED": "Minuties appariées",
+      "MINUTIA_UNPAIRED": "Appariement de minuties défait"
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "position": "Page {{page}} sur {{pageCount}}"
+    }
+  },
+  "reporting": {
+    "title": "Rapports du dossier",
+    "subtitle": "Documents scellés, générés à partir de l'état du dossier au moment de l'édition.",
+    "listTitle": "Rapports scellés",
+    "empty": "Aucun rapport généré pour ce dossier.",
+    "sealed": "Scellé",
+    "download": "Télécharger",
+    "byline": "signé par {{signer}} — le {{date}} à {{time}}",
+    "sealNotice": "L'empreinte SHA-256 affichée sous chaque rapport est celle enregistrée dans la chaîne d'audit : elle doit correspondre au fichier téléchargé.",
+    "type": {
+      "TECHNICAL": "Rapport technique",
+      "TRACEABILITY": "Annexe de traçabilité"
+    },
+    "journalDetail": {
+      "label": "Journal des actes détaillé",
+      "hint": "Par défaut, l'annexe C liste les actes de fond et résume les réglages d'image en une ligne par trace. Activez cette option pour obtenir la version qui énumère tous les réglages, un par un.",
+      "badge": "Journal détaillé"
+    },
+    "generate": {
+      "EXPLOITATION": "Générer le rapport d'exploitation",
+      "TECHNICAL": "Générer le rapport technique",
+      "TRACEABILITY": "Générer l'annexe de traçabilité"
+    },
+    "progress": {
+      "title": "On prépare votre rapport",
+      "description": "Le rassemblement des pièces, la composition du document et son scellement prennent quelques dizaines de secondes. Ne fermez pas cette fenêtre.",
+      "stages": {
+        "gathering": "Rassemblement des pièces du dossier",
+        "composing": "Composition du document",
+        "sealing": "Scellement et horodatage"
+      },
+      "longWait": "C'est plus long que d'habitude — la génération continue.",
+      "ready": {
+        "title": "Rapport {{number}} prêt",
+        "titleWithoutNumber": "Votre rapport est prêt",
+        "description": "Le document est scellé et son empreinte est enregistrée dans la chaîne d'audit."
+      },
+      "failed": {
+        "title": "La génération n'a pas abouti",
+        "description": "Le rapport n'a pas été enregistré. Vous pouvez relancer la génération."
+      },
+      "retry": "Réessayer",
+      "close": "Fermer"
+    },
+    "errors": {
+      "downloadFailed": "Téléchargement impossible."
+    },
+    "number": "Rapport {{number}}",
+    "signerUnknown": "signataire absent de l’annuaire",
+    "regenerateNotice": "Chaque génération produit un rapport nouveau et numéroté. Les précédents restent téléchargeables.",
+    "signer": {
+      "notice": "Ce rapport portera votre signature : {{signer}}."
+    }
+  },
+  "publicVerification": {
+    "title": "Vérifier un document ou une image",
+    "intro": "Cette page vous a été mise à disposition par le service vous ayant remis vos documents. Elle vous permet de vérifier si les fichiers que vous déposez n'ont pas été altérés par un tiers, et à quelle date. Elle ne partage aucune information sur le contenu du fichier, ni sur le dossier auquel il appartient.",
+    "stayLocal": "Le fichier ne quitte pas votre ordinateur : seule son empreinte numérique est envoyée.",
+    "pending": "Calcul de l'empreinte en cours…",
+    "another": "Vérifier un autre fichier",
+    "paperNotice": "La vérification porte sur un fichier. Un exemplaire imprimé ne peut pas être vérifié ici.",
+    "digest": "Empreinte numérique du fichier déposé",
+    "dropZone": {
+      "label": "Choisir un fichier, ou le faire glisser ici",
+      "hovered": "Relâchez pour vérifier ce fichier",
+      "hint": "Le rapport que vous avez reçu, l'une de ses images, ou une vidéo de démonstration.",
+      "limit": "Taille maximale : 100 Mo."
+    },
+    "kind": {
+      "TRACE": "une trace papillaire",
+      "REFERENCE_PRINT": "une empreinte de référence",
+      "REPORT": "un rapport",
+      "CONCORDANCE_VIDEO": "une vidéo de démonstration des concordances"
+    },
+    "verdict": {
+      "sealed": "Scellé par {{laboratory}} le {{date}}",
+      "anchored": "Horodaté par une autorité extérieure le {{date}}",
+      "earlierReport": "Un rapport antérieur a été établi sur le même dossier. Le document que vous détenez n'est pas le premier état des travaux.",
+      "newerReport": "Un rapport plus récent a été établi sur le même dossier. Le document que vous détenez est authentique, mais il n'est peut-être pas le dernier état des travaux.",
+      "unknown": "Ce fichier est inconnu de ce laboratoire. Aucun scellé ne lui correspond."
+    },
+    "errors": {
+      "unavailable": "La vérification n'a pas abouti. Réessayez dans un instant.",
+      "insecureContext": "La vérification n'a pas abouti. Réessayez dans un instant.",
+      "tooLarge": "Ce fichier est trop volumineux pour être vérifié dans le navigateur (limite : 100 Mo)."
+    }
+  },
+  "users": {
+    "list": {
+      "title": "Utilisateurs",
+      "subtitle": "Les comptes de votre service, leur rôle et leur état.",
+      "empty": "Aucun compte dans ce service.",
+      "noMatch": "Aucun compte ne correspond à ces critères.",
+      "error": "Impossible de charger les comptes du service.",
+      "restricted": "Cette page est réservée au responsable de service.",
+      "you": "(vous)"
+    },
+    "filters": {
+      "searchPlaceholder": "Rechercher un nom ou un matricule…",
+      "searchLabel": "Rechercher un compte",
+      "roleLabel": "Filtrer par rôle",
+      "gradeLabel": "Filtrer par grade",
+      "statusLabel": "Filtrer par état",
+      "anyRole": "Tous les rôles",
+      "anyGrade": "Tous les grades",
+      "anyStatus": "Tous les états"
+    },
+    "table": {
+      "lastName": "Nom",
+      "firstName": "Prénom",
+      "role": "Rôle",
+      "grade": "Grade",
+      "serviceNumber": "Matricule",
+      "status": "État",
+      "actions": "Actions"
+    },
+    "roles": {
+      "ADMIN": "Responsable de service",
+      "OPERATOR": "Opérateur",
+      "EXPERT": "Expert"
+    },
+    "status": {
+      "ACTIVE": "Actif",
+      "DISABLED": "Désactivé"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "deactivate": "Désactiver",
+      "reactivate": "Réactiver",
+      "menu": "Actions sur le compte de {{name}}"
+    },
+    "pagination": {
+      "total_one": "{{count}} compte",
+      "total_other": "{{count}} comptes",
+      "position": "Page {{page}} sur {{pageCount}}",
+      "previous": "Précédent",
+      "next": "Suivant"
+    },
+    "deactivateDialog": {
+      "title": "Désactiver ce compte ?",
+      "description": "{{name}} ne pourra plus se connecter. Le compte reste dans la liste avec ses actes au journal, et vous pouvez le réactiver depuis la même ligne.",
+      "confirm": "Désactiver"
+    },
+    "form": {
+      "title": "Corriger le profil",
+      "description": "Le nom, le prénom, le grade et le matricule de {{name}}. Le rôle ({{role}}) ne se change pas ici.",
+      "submit": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "fields": {
+        "lastName": {
+          "label": "Nom",
+          "placeholder": "Dupont"
+        },
+        "firstName": {
+          "label": "Prénom",
+          "placeholder": "Camille"
+        },
+        "grade": {
+          "label": "Grade",
+          "placeholder": "Capitaine"
+        },
+        "serviceNumber": {
+          "label": "Matricule",
+          "placeholder": "PTS-0007"
+        }
+      }
+    },
+    "validation": {
+      "lastNameRequired": "Le nom est requis",
+      "firstNameRequired": "Le prénom est requis",
+      "gradeRequired": "Le grade est requis",
+      "serviceNumberRequired": "Le matricule est requis"
+    },
+    "success": {
+      "deactivated": "Compte désactivé",
+      "reactivated": "Compte réactivé",
+      "profileUpdated": "Profil corrigé"
+    },
+    "errors": {
+      "deactivateFailed": "Impossible de désactiver ce compte",
+      "reactivateFailed": "Impossible de réactiver ce compte",
+      "updateFailed": "Impossible d'enregistrer ce profil",
+      "serviceNumberTaken": "Ce matricule est déjà porté par un autre compte du service"
+    }
+  },
+  "settings": {
+    "page": {
+      "title": "Paramètres",
+      "subtitle": "Les réglages de votre service. Ils valent pour tous ses dossiers et tous ses rapports.",
+      "restricted": "Cette page est réservée au responsable de service.",
+      "error": "Impossible de charger les paramètres du service."
+    },
+    "header": {
+      "title": "En-tête du service",
+      "description": "Ces informations s'impriment en haut de la première page de chaque rapport, et la ville remplit le « Fait à … » de la signature. Ce qui reste vide ne s'imprime pas.",
+      "submit": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "fields": {
+        "administration": {
+          "label": "Administration de rattachement",
+          "placeholder": "Ministère de l'Intérieur"
+        },
+        "serviceName": {
+          "label": "Nom du service",
+          "placeholder": "Service régional de police technique et scientifique"
+        },
+        "postalAddress": {
+          "label": "Adresse postale",
+          "placeholder": "12 rue des Exemples — 75017 Paris"
+        },
+        "phoneNumber": {
+          "label": "Téléphone",
+          "placeholder": "01 00 00 00 00"
+        },
+        "email": {
+          "label": "Courriel",
+          "placeholder": "contact@labo-demo.example"
+        },
+        "signatureCity": {
+          "label": "Ville du « Fait à … »",
+          "placeholder": "Paris"
+        }
+      },
+      "preview": {
+        "title": "Aperçu",
+        "description": "Le bloc tel qu'il sortira en haut de la première page du rapport.",
+        "empty": "Rien n'est encore saisi : le haut du rapport restera libre, sans cadre vide.",
+        "signature": "Fait à {{city}}, le …"
+      }
+    },
+    "validation": {
+      "emailInvalid": "Ce courriel n'est pas valide"
+    },
+    "success": {
+      "headerSaved": "En-tête du service enregistré"
+    },
+    "errors": {
+      "saveFailed": "Impossible d'enregistrer l'en-tête du service"
+    }
+  },
+  "withdrawalMotive": {
+    "DUPLICATE": "Doublon d'une pièce déjà versée",
+    "MISFILED": "Pièce versée par erreur dans ce dossier",
+    "WRONG_ATTRIBUTION": "Rattachement erroné à une personne ou à un doigt",
+    "OTHER": "Autre motif"
+  },
+  "statistics": {
+    "page": {
+      "title": "Activité du service",
+      "period": "Du 1er janvier {{year}} à aujourd'hui",
+      "operatorLabel": "Opérateur",
+      "wholeService": "Tout le service",
+      "empty": "Aucune donnée sur cette période."
+    },
+    "headline": {
+      "openCases": "dossiers en cours",
+      "trendUp": "L'encours a monté de {{count}} dossiers depuis janvier",
+      "trendDown": "L'encours a baissé de {{count}} dossiers depuis janvier",
+      "trendFlat": "L'encours n'a pas bougé depuis janvier",
+      "trendDetail": "— {{opened}} ouverts, {{closed}} clos.",
+      "oldestCase": "Le plus ancien est le dossier {{caseNumber}}, ouvert il y a {{days}} jours et confié à {{operator}}."
+    },
+    "tiles": {
+      "closedSinceJanuary": "Dossiers clos depuis le 1er janvier",
+      "closedPerMonth": "soit {{average}} par mois en moyenne",
+      "medianClosure": "Délai médian de clôture",
+      "medianClosureValue": "{{days}} j",
+      "ninthDecile": "9 dossiers sur 10 clos sous {{days}} jours",
+      "noClosure": "aucun dossier clos cette année",
+      "openOverOneMonth": "Dossiers ouverts depuis plus d'un mois",
+      "openOver90Days": "dont {{count}} au-delà de 90 jours"
+    },
+    "signals": {
+      "title": "Ce qui demande une décision",
+      "subtitle": "des stocks, comptés à l'instant où vous regardez",
+      "critical": "Critique",
+      "toHandle": "À traiter",
+      "dormant": "dossiers sans aucun acte depuis plus de 30 jours",
+      "expertiseDeadlines": "expertises dont l'échéance de prorogation tombe sous 15 jours",
+      "exploitableNeverCompared": "traces exploitables jamais confrontées à une empreinte",
+      "withoutOperator": "dossiers en cours sans opérateur désigné"
+    },
+    "monthlyFlow": {
+      "title": "Le débit",
+      "subtitle": "ce qui entre, ce qui sort",
+      "opened": "Dossiers ouverts",
+      "closed": "Dossiers clos",
+      "month": "Mois",
+      "balance": "Solde",
+      "openedTooltip": "{{month}} — {{count}} dossiers ouverts",
+      "closedTooltip": "{{month}} — {{count}} dossiers clos"
+    },
+    "funnel": {
+      "title": "L'entonnoir des traces",
+      "subtitle": "année en cours — entre deux barres, la part qui passe à l'étape suivante",
+      "collected": "Relevées",
+      "exploitable": "Exploitables",
+      "compared": "Comparées",
+      "identified": "Identifiées",
+      "notRecorded": "non renseigné",
+      "passingShare": "↓ {{percent}} %",
+      "stepTooltip": "{{step}} — {{count}} traces",
+      "step": "Étape",
+      "traces": "Traces"
+    },
+    "byOperator": {
+      "title": "Par opérateur",
+      "subtitle": "la charge qu'il porte, et le temps que ses dossiers ont pris",
+      "operator": "Opérateur",
+      "openCases": "Dossiers en cours",
+      "medianClosure": "Délai médian de clôture",
+      "medianClosureColumn": "Délai médian (j)",
+      "closedCases": "Dossiers clos",
+      "unassigned": "Non attribué",
+      "tooFewClosures": "trop peu de clôtures",
+      "notApplicable": "sans objet",
+      "closedCount": "{{count}} clos",
+      "days": "{{days}} j",
+      "openCasesTooltip": "{{operator}} — {{count}} dossiers en cours",
+      "medianTooltip": "{{operator}} — délai médian {{days}} jours sur {{count}} dossiers clos",
+      "serviceLine": "Le trait vertical marque le service : {{avg}} dossiers en cours par opérateur à gauche, {{days}} jours de délai médian à droite.",
+      "medianCaveat": "La médiane ne corrige pas la difficulté des affaires : deux opérateurs qui ne traitent pas les mêmes dossiers n'ont aucune raison d'avoir le même délai."
+    },
+    "figures": {
+      "show": "Voir les chiffres"
+    },
+    "export": {
+      "button": "Exporter en CSV",
+      "summary": {
+        "label": "Synthèse du service",
+        "hint": "les indicateurs de la page, un par ligne",
+        "fileName": "minuseek-synthese-service-{{year}}.csv"
+      },
+      "operators": {
+        "label": "Activité par opérateur",
+        "hint": "charge, clôtures et délai médian",
+        "fileName": "minuseek-operateurs-{{year}}.csv"
+      },
+      "openCases": {
+        "label": "Dossiers en cours",
+        "hint": "{{count}} lignes — de quoi refaire ses propres tris",
+        "fileName": "minuseek-dossiers-en-cours-{{year}}.csv"
+      },
+      "monthlyFlow": {
+        "label": "Débit mensuel",
+        "hint": "ouvertures et clôtures, mois par mois",
+        "fileName": "minuseek-debit-mensuel-{{year}}.csv"
+      },
+      "columns": {
+        "indicator": "Indicateur",
+        "value": "Valeur",
+        "detail": "Précision",
+        "operator": "Opérateur",
+        "openCases": "Dossiers en cours",
+        "closedInPeriod": "Dossiers clos dans la période",
+        "medianClosureDays": "Délai médian de clôture (jours)",
+        "caseNumber": "Numéro",
+        "openedOn": "Ouvert le",
+        "ageInDays": "Âge (jours)",
+        "lastActivityOn": "Dernier acte le",
+        "idleDays": "Sans acte depuis (jours)",
+        "month": "Mois",
+        "openedCases": "Dossiers ouverts",
+        "closedCases": "Dossiers clos",
+        "balance": "Solde"
+      },
+      "indicators": {
+        "period": "Période",
+        "scope": "Périmètre",
+        "openCases": "Dossiers en cours",
+        "openOver30Days": "Dossiers en cours ouverts depuis plus de 30 jours",
+        "oldestOpenCase": "Dossier en cours le plus ancien",
+        "openWithoutOperator": "Dossiers en cours sans opérateur",
+        "dormant": "Dossiers sans acte depuis plus de 30 jours",
+        "expertiseDeadlines": "Expertises à échéance sous 15 jours",
+        "openedInPeriod": "Dossiers ouverts dans la période",
+        "closedInPeriod": "Dossiers clos dans la période",
+        "medianClosureDays": "Délai médian de clôture (jours)",
+        "ninthDecileClosureDays": "Neuvième décile du délai de clôture (jours)",
+        "tracesCollected": "Traces relevées",
+        "tracesExploitable": "Traces exploitables",
+        "tracesCompared": "Traces comparées",
+        "tracesIdentified": "Traces identifiées",
+        "exploitableNeverCompared": "Traces exploitables jamais comparées"
+      },
+      "periodValue": "du {{from}} au {{to}}",
+      "oldestCaseDetail": "{{days}} jours, {{operator}}",
+      "over90DaysDetail": "dont {{count}} au-delà de 90 jours",
+      "serviceRow": "Service"
+    }
+  },
+  "operatorHome": {
+    "hero": {
+      "since": "Depuis le 1ᵉʳ janvier, sur vos dossiers :",
+      "summary": "{{collected}} traces relevées, {{identified}} identifiées.",
+      "collected_one": "trace relevée,",
+      "collected_other": "traces relevées,",
+      "identified_one": "identifiée.",
+      "identified_other": "identifiées.",
+      "figureLabel": "Sur les {{collected}} traces relevées sur vos dossiers depuis le 1ᵉʳ janvier, {{identified}} sont identifiées.",
+      "identifiedInside_one": "{{count}} identifiée",
+      "identifiedInside_other": "{{count}} identifiées",
+      "collectedInside_one": "sur {{count}} relevée",
+      "collectedInside_other": "sur {{count}} relevées",
+      "figures": "Voir les chiffres",
+      "step": {
+        "collected": "Traces relevées",
+        "exploitable": "Traces exploitables",
+        "compared": "Traces confrontées",
+        "identified": "Traces identifiées"
+      }
+    },
+    "workload": {
+      "openCases_one": "dossier en cours",
+      "openCases_other": "dossiers en cours",
+      "openCasesWithOldest_one": "dossier en cours — ouvert depuis {{days}} jours",
+      "openCasesWithOldest_other": "dossiers en cours — le plus ancien depuis {{days}} jours",
+      "peerReviews_one": "dossier pair à rendre",
+      "peerReviews_other": "dossiers pairs à rendre",
+      "peerReviewsWithOldest_one": "dossier pair à rendre — il attend depuis {{days}} jours",
+      "peerReviewsWithOldest_other": "dossiers pairs à rendre — le plus ancien attend depuis {{days}} jours",
+      "bracketsLabel": "Ancienneté de vos dossiers en cours : {{over}} au-delà de six mois, {{between}} de trois à six mois, {{under}} de moins de trois mois.",
+      "bracket": {
+        "overSixMonths": "plus de 6 mois",
+        "threeToSixMonths": "3 à 6 mois",
+        "underThreeMonths": "moins de 3 mois"
+      }
+    },
+    "queue": {
+      "title": "Ce qui vous attend",
+      "allClear": "Rien n'attend sur vos dossiers.",
+      "inCase": "— {{caseNumber}}",
+      "inCases_one": "— {{caseNumber}} et {{count}} autre",
+      "inCases_other": "— {{caseNumber}} et {{count}} autres",
+      "peerReviews": {
+        "title": "Dossiers pairs qui vous sont confiés",
+        "context": "{{caseNumber}} — confié le {{date}}, {{days}} jours d'attente",
+        "review": "RELIRE"
+      },
+      "discordances": {
+        "title": "Discordances à lever",
+        "context": "{{caseNumber}} — un troisième examen est nécessaire",
+        "resume": "REPRENDRE"
+      },
+      "pendingTraces": {
+        "title": "Traces en attente dans vos dossiers",
+        "neverCompared_one": "1 trace exploitable jamais confrontée",
+        "neverCompared_other": "{{count}} traces exploitables jamais confrontées",
+        "notQualified_one": "1 trace déposée, pas encore qualifiée",
+        "notQualified_other": "{{count}} traces déposées, pas encore qualifiées",
+        "compare": "CONFRONTER",
+        "qualify": "QUALIFIER"
+      },
+      "oldestCases": {
+        "title": "Vos dossiers les plus anciens",
+        "context": "{{caseNumber}} — ouvert il y a {{days}} jours",
+        "open": "OUVRIR"
+      }
+    }
+  }
+}

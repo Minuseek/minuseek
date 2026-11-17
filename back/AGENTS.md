@@ -1,0 +1,156 @@
+# AGENTS.md
+
+Guide pour les agents IA **et** les humains qui travaillent sur `back-minuseek`.
+API du projet Minuseek— **NestJS 11 + Prisma 7 + PostgreSQL 17**, en **DDD / architecture hexagonale**.
+
+> Le code applicatif vit dans `app/`. Docker, Makefile et CI sont à la racine.
+
+## Directives agents (DO / DON'T)
+
+✅ **À faire**
+- **Écrire le test avant le code** — rouge observé → vert → refacto. Un test qui n'a jamais échoué ne protège de rien. Discipline complète : skill **`tdd`**.
+- Garder `domain/` **framework-free** (zéro `@nestjs/*`, `@prisma/*`, `class-validator`).
+- Faire passer le controller par un **handler**, jamais un repository directement.
+- Valider à la frontière (DTO + `ValidationPipe`) ; traduire les erreurs domaine → HTTP dans le controller.
+- Communiquer entre bounded contexts **par UUID** uniquement.
+- Toute évolution de schéma = **migration Prisma** (`make migrate NAME=...`).
+- Lancer le skill **`back-review` avant chaque PR** ; viser un diff < 400 lignes.
+- **Écrire un ADR** (`docs/adr/`, cf. `docs/adr/README.md`) dès qu'une décision structurante est prise (choix techno, trade-off d'archi, contrat d'API, sécurité, modèle de données).
+
+❌ **À ne pas faire**
+- Écrire les tests après le code (ou en commit de rattrapage), ou s'arrêter au happy path.
+- Importer `infrastructure` depuis `application`/`domain` (sens de dépendance interdit).
+- Mettre de la logique métier dans un controller, ou créer un God Service.
+- Mocker un port au lieu d'utiliser un `InMemory*Repository`.
+- Coder en dur un secret/une URL, ou laisser un `console.log` / code de debug.
+- Éditer la DB à la main au lieu d'une migration.
+
+## Stack
+
+- **Runtime** : Node ≥ 22 — **Package manager** : pnpm 9 (`corepack enable`)
+- **Framework** : NestJS 11 (TypeScript) — **ORM** : Prisma 7 (driver adapter `@prisma/adapter-pg`, sans query engine natif)
+- **Base** : PostgreSQL 17 — **Conteneurs** : Docker Compose avec `docker compose watch` (hot-reload)
+- **Tests** : Jest (`*.spec.ts` à côté du code)
+
+## Démarrage
+
+```bash
+cp .env.example .env          # variables d'env (gitignoré)
+make setup-dev                # 1er lancement : stack + registre admin + client
+                              # provisioner + organisation tenant-demo (saga SUP-03)
+make dev                      # lancements suivants (hot-reload)
+```
+
+
+## Commandes (Makefile, à la racine)
+
+| Commande | Rôle |
+|---|---|
+| `make dev` / `make dev-build` | Lance le stack (rebuild d'image avec `dev-build`) |
+| `make down` / `make logs` | Stoppe le stack / suit les logs de l'app |
+| `make exec` / `make db` | Shell dans le conteneur app / `psql` sur la DB |
+| `make migrate NAME=<nom>` | Crée + applique une migration Prisma (schéma métier) |
+| `make migrate-deploy` | Applique les migrations métier (sans en générer) |
+| `make migrate-reset` | Reset complet de la DB métier |
+| `make migrate-admin-setup` | 1er lancement : crée `minuseek_admin` + migration initiale |
+| `make migrate-admin NAME=<nom>` | Crée + applique une migration sur le schéma admin |
+| `make test [FILE=...]` | Lance les tests (un fichier si `FILE=`) |
+| `make test-integration [FILE=...]` | Suite d'intégration sur une vraie base jetable |
+| `make test-integration-down` | Détruit la base d'intégration |
+| `make audit-verify [TENANT=…]` | Vérifie l'intégrité des chaînes d'audit (code 1 si rompue) — cf. [docs/verification-de-la-chaine.md](docs/verification-de-la-chaine.md) |
+| `make audit-anchor [TENANT=…]` | Horodate la tête de chaîne auprès de la TSA (RFC 3161) |
+
+Scripts pnpm (depuis `app/`) : `pnpm build`, `pnpm start:dev`, `pnpm lint`, `pnpm test`.
+
+## Architecture — où va le code
+
+Chaque *bounded context* est un dossier sous `app/src/`, découpé en 3 couches :
+
+```
+app/src/investigation/
+├── domain/                         # Cœur métier — AUCUNE dépendance externe
+│   ├── investigation-case.ts       # Aggregate root (constructeur privé + factory statique)
+│   ├── investigation-case-status.vo.ts   # Value Object
+│   └── ports/                      # Interfaces de repository (driven ports)
+├── application/                    # Use cases (orchestration)
+│   └── commands/<use-case>/
+│       ├── *.command.ts            # DTO d'entrée du use case
+│       └── *.handler.ts            # Implémentation du use case
+└── infrastructure/                 # Adapters (le monde extérieur)
+    ├── http/                       # Driver adapter : controller + DTO HTTP (class-validator)
+    └── persistence/                # Driven adapters : prisma-*.repository, in-memory-*.repository
+```
+
+### Règle de dépendance (non négociable)
+
+```
+infrastructure  →  application  →  domain
+                                   (ne dépend de rien)
+```
+
+- **`domain/` doit rester framework-free** : zéro import de `@nestjs/*`, `@prisma/*`, `class-validator`. Si tu ajoutes un de ces imports dans `domain/`, c'est une erreur d'architecture.
+- Décider où placer du code : règle/invariant métier → `domain/` ; orchestration d'un cas d'usage → `application/` ; accès à un système externe (DB, HTTP, broker) → `infrastructure/`.
+
+## Conventions
+
+- **Repository** : une interface par *aggregate* dans `domain/ports/`, ses implémentations dans `infrastructure/persistence/`. Le lien port → adapter se fait par **token DI** dans le module (`investigation.module.ts`) — c'est le composition root, le repo est swappable.
+- **Le controller appelle un handler**, jamais un repository directement.
+- **Validation à la frontière** : DTO HTTP + `ValidationPipe` global. Le domaine ne valide que ses propres invariants.
+- **Erreurs traduites aux frontières** : le controller catch les erreurs du domaine et les mappe en exceptions HTTP (ex. `CaseNumberAlreadyExistsError` → `409 ConflictException`).
+- **Value Objects** : immuables, constructeur privé, factory statique auto-validante.
+- **Nommage de fichiers** : kebab-case avec suffixe de rôle (`.vo.ts`, `.repository.ts`, `.handler.ts`, `.command.ts`, `.dto.ts`, `.controller.ts`).
+
+## Tests
+
+- **TDD, pas de test après coup** : on écrit un test, on le **voit rouge** (échec d'assertion, pas d'erreur de compilation), on écrit le minimum pour le rendre vert, on refactorise. Toute branche du code de prod (`if`, `throw`, `catch`) doit avoir été exigée par un test.
+- **Couvrir ce qui doit échouer autant que ce qui doit marcher** : limites, entrées invalides, transitions interdites, immuabilité, idempotence, round-trip, régressions. Les erreurs s'assertent **par type** (`toThrow(MonError)`, jamais `toThrow()` nu) et vérifient l'absence d'effet de bord. Un `it` unique sur le happy path = unité non testée.
+- Taxonomie de couverture, qualité des assertions, **mutation manuelle** (casser le code pour prouver qu'un test le rattrape) et Definition of Done : skill **`tdd`** — à lire avant de coder.
+- **Domaine & use cases** : tests unitaires purs. Les handlers se testent en injectant un `InMemory*Repository` (pas de DB, pas de mock lourd) — voir `open-investigation-case.handler.spec.ts`.
+- `make test [FILE=...]` lance les `*.spec.ts` sous `app/src/` ; `make test-watch FILE=...` est la boucle rouge/vert ; `pnpm test:cov` repère les branches jamais exécutées (aucun seuil configuré). **Aucun test e2e HTTP n'existe aujourd'hui** : pas de script `test:e2e` (bien que `supertest` soit installé) — ne pas inventer la commande ; si on en ajoute, mettre cette section à jour.
+- **Tests d'intégration** (`app/test/integration/**/*.int-spec.ts`, `make test-integration`) : réservés à ce que les fakes ne reproduisent pas — advisory lock Postgres, propagation du client transactionnel par l'`AsyncLocalStorage`, extension `$extends` du garde anti-oubli, rollback réel, triggers SQL. Ils tournent contre le service compose `postgres-test` (profil `test`, port 5433, base jetable), config `app/jest.integration.config.js`, et sont **hors** du `pnpm test` unitaire (`rootDir: src`). Un comportement testable sans base reste un test unitaire.
+
+## Ajouter un use case (recette, test-first)
+
+0. **Lister les cas de test** avant de coder (taxonomie du skill `tdd`) : nominal, limites, entrées invalides, transitions interdites, invariants.
+1. **Spec du domaine rouge** sur l'invariant visé, puis l'entité/VO dans `domain/` qui la rend verte — couche pure.
+2. Si besoin de persistance, ajouter la méthode au port `domain/ports/*.repository.ts` **et** au fake `in-memory-*.repository.ts` (le fake imite le contrat réel, ordre de tri et cas d'égalité compris).
+3. **Spec du handler rouge** (`*.handler.spec.ts` avec l'`InMemory*`), puis `application/commands/<use-case>/` — `*.command.ts` (entrée) + `*.handler.ts` (orchestration) — pour la faire passer.
+4. Implémenter l'adapter Prisma du port dans `infrastructure/persistence/`.
+5. Exposer via un controller dans `infrastructure/http/` (+ DTO validé).
+6. Câbler dans le module (provider du handler + binding token → adapter).
+7. **Mutation manuelle** sur les gardes ajoutées (chaque mutation doit tuer au moins un test), puis `make test`, `pnpm exec tsc --noEmit` et `pnpm lint` (depuis `app/`).
+
+## Base de données / Prisma
+
+- Schéma découpé : `app/prisma/schema.prisma` (datasource/generator) + modèles dans `app/prisma/models/*.prisma`.
+- Le client est généré dans `app/generated/prisma` (gitignoré) par `prisma generate` (`postinstall`).
+- Toute évolution de schéma passe par une migration (`make migrate NAME=...`), jamais en éditant la DB à la main.
+
+## Points d'attention
+
+- `make setup-dev` crée et migre la base du registre et celle de l'organisation de démo. Après un `git pull` qui apporte des migrations, `make migrate-all` les applique à toutes les bases.
+- Ne pas committer `.env` (secrets) ; partir de `.env.example`.
+- `pnpm-lock.yaml` doit être commité pour des installs reproductibles (Docker + CI).
+
+## Agents IA & skills (multi-outils)
+
+L'équipe utilise plusieurs agents (Claude Code, Codex, Antigravity…). Le setup est partagé et **committé** :
+
+- **`AGENTS.md`** (ce fichier) — standard ouvert, lu nativement par Codex, Cursor, Copilot, Windsurf, Aider, Zed… (sous l'égide de la Linux Foundation).
+- **`CLAUDE.md`** — importe ce fichier via `@AGENTS.md`, car Claude Code ne lit pas `AGENTS.md` nativement (feature request `anthropics/claude-code#34235`).
+- **Skills du repo** : sous `.agents/skills/` (committé) — `tdd` (discipline d'écriture : cycle rouge/vert/refacto, taxonomie de couverture, mutation manuelle — à lire **avant** de coder), `back-review` (gate de review pré-PR), `architecture-review` (revue de fond archi & principes : hexagonal, SOLID/DRY/YAGNI, frontières de contexte, tests sans mock — inspiré Fowler / Uncle Bob / Udi Dahan), `api-security` (audit OWASP / IDOR / RBAC). Lus nativement par **Codex** (`$REPO_ROOT/.agents/skills`, et Codex **suit les symlinks**).
+- **`.agents/rules/conventions.md` → `../../AGENTS.md`** — symlink committé pour **Google Antigravity**, qui lit `.agents/rules/` (règles toujours actives).
+
+**Claude Code** ne découvre les skills que dans `.claude/skills/`, or `.claude/` est **gitignoré** (il contient `settings.local.json`, propre à chaque dev). Pour éviter toute copie manuelle (source de dérive), `.claude/skills` est un **lien symbolique committé** vers `.agents/skills/`. Au clone, git restaure le lien : **rien à faire**.
+
+```bash
+# Les liens sont déjà versionnés. À ne (re)créer qu'en cas de besoin :
+ln -s ../.agents/skills .claude/skills
+ln -s ../../AGENTS.md .agents/rules/conventions.md
+```
+
+Le `.gitignore` ne partage que ces liens (`.claude/*` ignoré, `!.claude/skills` ré-inclus) ; `settings.local.json` reste privé.
+
+> **Source de vérité unique : `.agents/`.** Tu édites un skill à un seul endroit et tous les outils le voient : **Codex** lit `.agents/skills` nativement (et suit les symlinks), **Antigravity** lit `.agents/rules/`, **Claude Code** suit le lien `.claude/skills`. Pas de copie, pas de commande de sync.
+>
+> **Windows** : si les liens apparaissent comme de simples fichiers texte, exécute une fois `git config core.symlinks true` puis re-checkout.

@@ -1,0 +1,65 @@
+model InvestigationCase {
+  id              String                  @id @default(uuid()) @db.Uuid
+  caseNumber      String                  @unique
+  pvNumber        String
+  description     String?
+  status          InvestigationCaseStatus @default(OPEN)
+  operatorUserId  String?                 @db.Uuid
+  lastTraceNumber Int                     @default(0)
+  closedAt        DateTime?
+
+  requestDate       DateTime? @db.Date
+  requesterQuality  String?
+  requesterName     String?
+  requesterService  String?
+  offenseNature     String?
+  offenseLocation   String?
+  offenseDateFrom   DateTime? @db.Date
+  offenseDateTo     DateTime? @db.Date
+  interventionDate  DateTime? @db.Date
+  caseAgainst       String?
+
+  recipientAuthority        String?
+  recipientAttentionQuality String?
+  recipientAttentionName    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([operatorUserId])
+}
+
+model CaseExpertise {
+  id                       String                   @id @default(uuid()) @db.Uuid
+  caseId                   String                   @unique @db.Uuid
+  expertUserId             String                   @db.Uuid
+  oathStatement            String
+  courtReference           String
+  swornAt                  DateTime
+  magistrateName           String?
+  magistrateTitle          String?
+  ordinanceDate            DateTime?
+  missionObject            String?
+  sealCount                Int?
+  prorogationDeadline      DateTime?
+  prorogationOrdinanceDate DateTime?
+  biologicalPrecautions    Boolean                  @default(false)
+  assistants               CaseExpertiseAssistant[]
+}
+
+model CaseExpertiseAssistant {
+  id          String        @id @default(uuid()) @db.Uuid
+  expertiseId String        @db.Uuid
+  name        String
+  task        String
+  expertise   CaseExpertise @relation(fields: [expertiseId], references: [id], onDelete: Cascade)
+
+  @@index([expertiseId])
+}
+
+enum InvestigationCaseStatus {
+  OPEN
+  IN_PROGRESS
+  UNDER_REVIEW
+  CLOSED
+}

@@ -1,0 +1,403 @@
+import type { PrismaClient } from '../../../../generated/prisma/client';
+import type { TenantConnectionService } from '../../../tenancy/infrastructure/persistence/tenant-connection.service';
+import { PrismaTraceReader } from './prisma-trace.reader';
+
+interface TraceRow {
+  id: string;
+  number: number;
+  caseId: string;
+  path: string;
+  status: string;
+  sha256: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  notIdentifiedAt: Date | null;
+  thumbPath: string | null;
+  hits: { id: string }[];
+  locationPhoto: {
+    id: string;
+    path: string;
+    sha256: string;
+    thumbPath: string | null;
+    createdAt: Date;
+  } | null;
+}
+
+function aTraceRow(overrides: Partial<TraceRow> = {}): TraceRow {
+  return {
+    id: 'trace-1',
+    number: 1,
+    caseId: 'case-9',
+    path: 'media/investigation-case/case-9/traces/trace-1.png',
+    status: 'RECEIVED',
+    sha256: 'a'.repeat(64),
+    createdAt: new Date('2026-07-01T10:00:00.000Z'),
+    updatedAt: new Date('2026-07-02T10:00:00.000Z'),
+    notIdentifiedAt: null,
+    thumbPath: null,
+    hits: [],
+    locationPhoto: null,
+    ...overrides,
+  };
+}
+
+class FakePrismaClient {
+  readonly findManyArgs: unknown[] = [];
+
+  constructor(
+    private readonly rows: TraceRow[],
+    private readonly caseNumber: string | null,
+  ) {}
+
+  readonly findUniqueArgs: unknown[] = [];
+
+  readonly trace = {
+    findMany: (args: unknown): Promise<TraceRow[]> => {
+      this.findManyArgs.push(args);
+      return Promise.resolve(this.rows);
+    },
+    findUnique: (args: unknown): Promise<TraceRow | null> => {
+      this.findUniqueArgs.push(args);
+      const id = (args as { where: { id: string } }).where.id;
+      return Promise.resolve(this.rows.find((row) => row.id === id) ?? null);
+    },
+  };
+
+  readonly investigationCase = {
+    findUnique: (): Promise<{ caseNumber: string } | null> =>
+      Promise.resolve(
+        this.caseNumber === null ? null : { caseNumber: this.caseNumber },
+      ),
+  };
+}
+
+function build(
+  rows: TraceRow[] = [aTraceRow()],
+  caseNumber: string | null = '3455',
+) {
+  const prisma = new FakePrismaClient(rows, caseNumber);
+  const openedClients: string[] = [];
+  const tenantConnection = {
+    getCurrentClient: () => {
+      openedClients.push('current');
+      return Promise.resolve(prisma as unknown as PrismaClient);
+    },
+    getClient: () => {
+      openedClients.push('explicit');
+      return Promise.resolve(prisma as unknown as PrismaClient);
+    },
+  } as unknown as TenantConnectionService;
+  return {
+    reader: new PrismaTraceReader(tenantConnection),
+    prisma,
+    openedClients,
+  };
+}
+
+describe('PrismaTraceReader', () => {
+  it('lit dans la base du tenant courant, jamais dans une autre', async () => {
+    const { reader, openedClients } = build();
+
+    await reader.findByCaseId('case-9');
+
+    expect(openedClients).toEqual(['current']);
+  });
+
+  it("ne demande que les traces de l'affaire visée", async () => {
+    const { reader, prisma } = build();
+
+    await reader.findByCaseId('case-9');
+
+    expect(prisma.findManyArgs[0]).toMatchObject({
+      where: { caseId: 'case-9' },
+    });
+  });
+
+  it('trie par numéro croissant', async () => {
+    const { reader, prisma } = build();
+
+    await reader.findByCaseId('case-9');
+
+    expect(prisma.findManyArgs[0]).toMatchObject({
+      orderBy: { number: 'asc' },
+    });
+  });
+
+  // Les lignes sont projetées par diffusion : ne plus typer la colonne morte ne
+  // suffirait pas à cesser de la rendre, les traces déposées du temps de B3 en
+  // portent encore une. C'est l'omission qui tient l'engagement de L3-6.
+  it('ne lit pas la colonne de netteté abandonnée par L3-4', async () => {
+    const { reader, prisma } = build();
+
+    await reader.findByCaseId('case-9');
+
+    expect(prisma.findManyArgs[0]).toMatchObject({
+      omit: { captureQuality: true },
+    });
+  });
+
+  it("compose la référence avec le numéro d'affaire", async () => {
+    const { reader } = build([aTraceRow({ number: 7 })]);
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.reference).toBe('3455-T7');
+  });
+
+  it("ne demande à la liste que l'existence de la photographie, pas ses colonnes", async () => {
+    const { reader, prisma } = build();
+
+    await reader.findByCaseId('case-9');
+
+    expect(prisma.findManyArgs[0]).toMatchObject({
+      include: { locationPhoto: { select: { id: true } } },
+    });
+  });
+
+  it("dit qu'une trace de la liste porte une photographie de localisation", async () => {
+    const { reader } = build([
+      aTraceRow({
+        locationPhoto: {
+          id: 'photo-1',
+          path: 'media/investigation-case/case-9/location-photos/photo-1.png',
+          sha256: 'b'.repeat(64),
+          thumbPath: null,
+          createdAt: new Date('2026-07-01T11:00:00.000Z'),
+        },
+      }),
+    ]);
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.hasLocationPhoto).toBe(true);
+    expect(trace).not.toHaveProperty('locationPhoto');
+  });
+
+  it("dit qu'une trace de la liste n'en porte aucune", async () => {
+    const { reader } = build();
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.hasLocationPhoto).toBe(false);
+  });
+
+  it('rend la photographie complète sur la trace seule', async () => {
+    const sealedAt = new Date('2026-07-01T11:00:00.000Z');
+    const { reader } = build([
+      aTraceRow({
+        locationPhoto: {
+          id: 'photo-1',
+          path: 'media/investigation-case/case-9/location-photos/photo-1.png',
+          sha256: 'b'.repeat(64),
+          thumbPath:
+            'media/investigation-case/case-9/location-photos/photo-1_thumb.webp',
+          createdAt: sealedAt,
+        },
+      }),
+    ]);
+
+    const trace = await reader.findById('trace-1');
+
+    expect(trace?.hasLocationPhoto).toBe(true);
+    expect(trace?.locationPhoto).toEqual({
+      id: 'photo-1',
+      path: 'media/investigation-case/case-9/location-photos/photo-1.png',
+      sha256: 'b'.repeat(64),
+      thumbPath:
+        'media/investigation-case/case-9/location-photos/photo-1_thumb.webp',
+      sealedAt,
+    });
+  });
+
+  it('rend null quand la trace seule ne porte aucune photographie', async () => {
+    const { reader } = build();
+
+    expect((await reader.findById('trace-1'))?.locationPhoto).toBeNull();
+  });
+
+  it('rend identifiée une trace qui porte une correspondance déclarée', async () => {
+    const { reader } = build([aTraceRow({ hits: [{ id: 'hit-1' }] })]);
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.identified).toBe(true);
+  });
+
+  it('laisse non identifiée une trace sans correspondance', async () => {
+    const { reader } = build();
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.identified).toBe(false);
+  });
+
+  it('laisse non identifiée une trace jamais déclarée non identifiée', async () => {
+    const { reader } = build();
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.notIdentified).toBe(false);
+  });
+
+  it('rend non identifiée une trace déclarée non identifiée, sans correspondance', async () => {
+    const { reader } = build([
+      aTraceRow({ notIdentifiedAt: new Date('2026-07-03T10:00:00.000Z') }),
+    ]);
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.notIdentified).toBe(true);
+  });
+
+  it('efface la non-identification quand une correspondance existe', async () => {
+    const { reader } = build([
+      aTraceRow({
+        notIdentifiedAt: new Date('2026-07-03T10:00:00.000Z'),
+        hits: [{ id: 'hit-1' }],
+      }),
+    ]);
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.notIdentified).toBe(false);
+  });
+
+  it("ne rend rien quand l'affaire n'existe pas", async () => {
+    const { reader, prisma } = build([aTraceRow()], null);
+
+    await expect(reader.findByCaseId('case-9')).resolves.toEqual([]);
+    expect(prisma.findManyArgs).toHaveLength(0);
+  });
+
+  it('lit une trace seule dans la base du tenant courant', async () => {
+    const { reader, openedClients } = build();
+
+    await reader.findById('trace-1');
+
+    expect(openedClients).toEqual(['current']);
+  });
+
+  it("compose la référence de la trace seule avec le numéro d'affaire", async () => {
+    const { reader } = build([aTraceRow({ number: 7 })]);
+
+    const trace = await reader.findById('trace-1');
+
+    expect(trace).toMatchObject({
+      number: 7,
+      reference: '3455-T7',
+      sha256: 'a'.repeat(64),
+      updatedAt: new Date('2026-07-02T10:00:00.000Z'),
+    });
+  });
+
+  it("ne rend rien quand la trace demandée n'existe pas", async () => {
+    const { reader } = build();
+
+    await expect(reader.findById('trace-absente')).resolves.toBeNull();
+  });
+
+  it("ne rend rien quand l'affaire de la trace n'existe plus", async () => {
+    const { reader } = build([aTraceRow()], null);
+
+    await expect(reader.findById('trace-1')).resolves.toBeNull();
+  });
+
+  it('rend identifiée une trace seule qui porte une correspondance déclarée', async () => {
+    const { reader } = build([aTraceRow({ hits: [{ id: 'hit-1' }] })]);
+
+    const trace = await reader.findById('trace-1');
+
+    expect(trace?.identified).toBe(true);
+  });
+
+  it('rend non identifiée une trace seule déclarée non identifiée, sans correspondance', async () => {
+    const { reader } = build([
+      aTraceRow({ notIdentifiedAt: new Date('2026-07-03T10:00:00.000Z') }),
+    ]);
+
+    const trace = await reader.findById('trace-1');
+
+    expect(trace?.notIdentified).toBe(true);
+  });
+
+  it('efface la non-identification de la trace seule quand une correspondance existe', async () => {
+    const { reader } = build([
+      aTraceRow({
+        notIdentifiedAt: new Date('2026-07-03T10:00:00.000Z'),
+        hits: [{ id: 'hit-1' }],
+      }),
+    ]);
+
+    const trace = await reader.findById('trace-1');
+
+    expect(trace?.notIdentified).toBe(false);
+  });
+
+  it('ignore les correspondances retirées pour dire si la trace seule est identifiée', async () => {
+    const { reader, prisma } = build();
+
+    await reader.findById('trace-1');
+
+    expect(prisma.findUniqueArgs[0]).toMatchObject({
+      where: { id: 'trace-1' },
+      include: {
+        hits: {
+          where: { withdrawnAt: null, referencePrint: { withdrawnAt: null } },
+          take: 1,
+        },
+      },
+    });
+  });
+
+  it('cote les traces exploitables du dossier, dans l’ordre des numéros', async () => {
+    const { reader } = build([
+      aTraceRow({ id: 'trace-1', number: 1, status: 'EXPLOITABLE' }),
+      aTraceRow({ id: 'trace-2', number: 2, status: 'NOT_EXPLOITABLE' }),
+      aTraceRow({ id: 'trace-3', number: 3, status: 'EXPLOITABLE' }),
+    ]);
+
+    const traces = await reader.findByCaseId('case-9');
+
+    expect(traces.map((trace) => trace.cote)).toEqual(['A', null, 'B']);
+  });
+
+  it('cote la trace seule au rang qu’elle tient parmi ses voisines', async () => {
+    const { reader } = build([
+      aTraceRow({ id: 'trace-1', number: 1, status: 'EXPLOITABLE' }),
+      aTraceRow({ id: 'trace-2', number: 2, status: 'EXPLOITABLE' }),
+    ]);
+
+    expect((await reader.findById('trace-2'))?.cote).toBe('B');
+  });
+
+  it('ne cote pas une trace que rien ne déclare', async () => {
+    const { reader } = build();
+
+    expect((await reader.findByCaseId('case-9'))[0].cote).toBeNull();
+  });
+
+  it('écarte les traces retirées du calcul de la cote', async () => {
+    const { reader, prisma } = build();
+
+    await reader.findByCaseId('case-9');
+
+    expect(prisma.findManyArgs[1]).toEqual({
+      where: { caseId: 'case-9', withdrawnAt: null },
+      select: { number: true, status: true },
+    });
+  });
+
+  it('projette le chemin de la vignette de la trace', async () => {
+    const { reader } = build([
+      aTraceRow({
+        thumbPath: 'media/investigation-case/case-9/traces/trace-1_thumb.webp',
+      }),
+    ]);
+
+    const [trace] = await reader.findByCaseId('case-9');
+
+    expect(trace.thumbPath).toBe(
+      'media/investigation-case/case-9/traces/trace-1_thumb.webp',
+    );
+  });
+});

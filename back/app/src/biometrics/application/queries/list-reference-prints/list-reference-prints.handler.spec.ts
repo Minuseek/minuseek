@@ -1,0 +1,448 @@
+import { InMemoryImageStorageAdapter } from '../../../infrastructure/storage/in-memory-image-storage.adapter';
+import { ListReferencePrintsHandler } from './list-reference-prints.handler';
+import { ListReferencePrintsQuery } from './list-reference-prints.query';
+import { ReferencePrintReadModel } from './reference-print-read-model';
+import { ReferencePrintReader } from './reference-print.reader';
+
+class InMemoryReferencePrintReader implements ReferencePrintReader {
+  constructor(private readonly referencePrints: ReferencePrintReadModel[]) {}
+
+  // Même ordre que `prisma-reference-print.reader.ts` : la plus récente
+  // d'abord, puis l'identifiant pour départager deux versements simultanés.
+  findByCaseId(
+    caseId: string,
+    withdrawn = false,
+  ): Promise<ReferencePrintReadModel[]> {
+    return Promise.resolve(
+      this.referencePrints
+        .filter(
+          (referencePrint) =>
+            referencePrint.caseId === caseId &&
+            (referencePrint.withdrawnAt !== null) === withdrawn,
+        )
+        .sort(
+          (left, right) =>
+            right.createdAt.getTime() - left.createdAt.getTime() ||
+            left.id.localeCompare(right.id),
+        ),
+    );
+  }
+}
+
+describe('ListReferencePrintsHandler', () => {
+  it('adds a url derived from the path to each reference print of the case', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data).toHaveLength(1);
+    expect(data[0].url).toBe(
+      '/media/investigation-case/case-9/reference-prints/ref-1.png',
+    );
+  });
+
+  it('sert les dimensions du fichier de chaque empreinte, null quand elles manquent', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: 1500,
+        sourceHeight: 2000,
+      },
+      {
+        id: 'ref-2',
+        path: 'media/investigation-case/case-9/reference-prints/ref-2.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-06-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(
+      data.map(({ sourceWidth, sourceHeight }) => [sourceWidth, sourceHeight]),
+    ).toEqual([
+      [1500, 2000],
+      [null, null],
+    ]);
+  });
+
+  it('signe l’adresse de la vignette de chaque empreinte', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        sourceWidth: null,
+        sourceHeight: null,
+        thumbPath:
+          'media/investigation-case/case-9/reference-prints/ref-1_thumb.webp',
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].thumbUrl).toBe(
+      '/media/investigation-case/case-9/reference-prints/ref-1_thumb.webp',
+    );
+  });
+
+  it('ne signe aucune vignette quand l’empreinte n’en porte pas', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].thumbUrl).toBeNull();
+  });
+
+  it("ne signe aucune vignette pour une empreinte dont l'image est détruite", async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: 'subject-1',
+        position: 'RIGHT_INDEX',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: new Date('2026-09-01T09:00:00.000Z'),
+        resolutionDpi: null,
+        markRadius: null,
+        sourceWidth: null,
+        sourceHeight: null,
+        thumbPath:
+          'media/investigation-case/case-9/reference-prints/ref-1_thumb.webp',
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].thumbUrl).toBeNull();
+    expect(data[0].url).toBeNull();
+  });
+
+  it('exposes the calibrated resolution of a reference print', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: 1207.34,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].resolutionDpi).toBe(1207.34);
+  });
+
+  it('leaves the resolution empty for an uncalibrated reference print', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].resolutionDpi).toBeNull();
+  });
+
+  it('exposes the marker size set on a reference print', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: 36,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].markRadius).toBe(36);
+  });
+
+  it('départage deux empreintes versées dans la même seconde par leur identifiant', async () => {
+    const versedAt = new Date('2026-07-01T00:00:00.000Z');
+    const referencePrint = (id: string): ReferencePrintReadModel => ({
+      id,
+      path: `media/investigation-case/case-9/reference-prints/${id}.png`,
+      caseId: 'case-9',
+      subjectId: null,
+      position: null,
+      createdAt: versedAt,
+      matchings: [],
+      withdrawnAt: null,
+      withdrawalMotive: null,
+      withdrawalMotiveDetail: null,
+      imageDestroyedAt: null,
+      resolutionDpi: null,
+      markRadius: null,
+      thumbPath: null,
+      sourceWidth: null,
+      sourceHeight: null,
+    });
+    const reader = new InMemoryReferencePrintReader([
+      referencePrint('ref-a'),
+      referencePrint('ref-c'),
+      referencePrint('ref-b'),
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data.map((print) => print.id)).toEqual(['ref-a', 'ref-b', 'ref-c']);
+  });
+  it('ne liste que les empreintes retirées quand on les demande', async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: null,
+        position: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+      {
+        id: 'ref-2',
+        path: 'media/investigation-case/case-9/reference-prints/ref-2.png',
+        caseId: 'case-9',
+        subjectId: 'subject-1',
+        position: 'RIGHT_INDEX',
+        createdAt: new Date('2026-07-02T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: new Date('2026-08-12T09:00:00.000Z'),
+        withdrawalMotive: 'WRONG_ATTRIBUTION',
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: null,
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9', true),
+    );
+
+    expect(data.map((print) => print.id)).toEqual(['ref-2']);
+    expect(data[0].withdrawalMotive).toBe('WRONG_ATTRIBUTION');
+    expect(data[0].url).toBeDefined();
+  });
+  it("ne signe aucune URL pour une empreinte dont l'image est détruite", async () => {
+    const reader = new InMemoryReferencePrintReader([
+      {
+        id: 'ref-1',
+        path: 'media/investigation-case/case-9/reference-prints/ref-1.png',
+        caseId: 'case-9',
+        subjectId: 'subject-1',
+        position: 'RIGHT_INDEX',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        matchings: [],
+        withdrawnAt: null,
+        withdrawalMotive: null,
+        withdrawalMotiveDetail: null,
+        imageDestroyedAt: new Date('2026-09-01T09:00:00.000Z'),
+        resolutionDpi: null,
+        markRadius: null,
+        thumbPath: null,
+        sourceWidth: null,
+        sourceHeight: null,
+      },
+    ]);
+    const handler = new ListReferencePrintsHandler(
+      reader,
+      new InMemoryImageStorageAdapter(),
+    );
+
+    const { data } = await handler.execute(
+      new ListReferencePrintsQuery('case-9'),
+    );
+
+    expect(data[0].url).toBeNull();
+  });
+});

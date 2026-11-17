@@ -1,0 +1,26 @@
+# Seuls les correctifs de sécurité ouvrent des PR (réglage du dépôt). Les
+# mises à jour de version sont coupées (open-pull-requests-limit: 0) ; les
+# règles ci-dessous s'appliquent aussi aux correctifs de sécurité.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /back/app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: npm
+    directory: /front
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    ignore:
+      # Les conteneurs et la CI tournent sous Node 24 : les types suivent cette version
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0

@@ -1,0 +1,40 @@
+model CaseVerification {
+  id                String             @id @db.Uuid
+  caseId            String             @db.Uuid
+  verifierUserId    String             @db.Uuid
+  requestedByUserId String             @db.Uuid
+  status            VerificationStatus @default(PENDING)
+  requestedAt       DateTime           @default(now())
+  completedAt       DateTime?
+
+  @@index([caseId])
+  @@index([verifierUserId, status])
+}
+
+enum VerificationStatus {
+  PENDING
+  CONCORDANT
+  DISCORDANT
+}
+
+model VerificationDecision {
+  id                         String                     @id @db.Uuid
+  verificationId             String                     @db.Uuid
+  traceId                    String                     @db.Uuid
+  exploitability             VerificationExploitability
+  identifiedReferencePrintId String?                    @db.Uuid
+  outcome                    DecisionOutcome?
+  statedAt                   DateTime                   @default(now())
+
+  @@unique([verificationId, traceId])
+}
+
+enum VerificationExploitability {
+  EXPLOITABLE
+  NOT_EXPLOITABLE
+}
+
+enum DecisionOutcome {
+  CONCORDANT
+  DISCORDANT
+}

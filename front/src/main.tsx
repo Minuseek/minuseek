@@ -1,0 +1,96 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import './assets/css/index.css'
+import './features/shared/lib/i18n'
+import { queryClient } from './features/shared/lib/queryClient.ts'
+import { Toaster } from './features/shared/ui/sonner.tsx'
+import { TooltipProvider } from './features/shared/ui/tooltip.tsx'
+import TenantAuthBoundary from './features/shared/auth/TenantAuthBoundary.tsx'
+import TenantRequiredPage from './features/shared/components/TenantRequiredPage.tsx'
+import CasePageLayout from './layouts/CasePageLayout.tsx'
+import CaseComparisonLayout from './layouts/CaseComparisonLayout.tsx'
+import InvestigationCasesPage from './features/investigation-case/pages/InvestigationCasesPage.tsx'
+import CasesToVerifyPage from './features/investigation-case/pages/CasesToVerifyPage.tsx'
+import InvestigationCaseDetailsPage from './features/investigation-case/pages/InvestigationCaseDetailsPage.tsx'
+import InvestigationCaseSubjectsPage from './features/investigation-case/pages/InvestigationCaseSubjectsPage.tsx'
+import SubjectDetailsPage from './features/investigation-case/pages/SubjectDetailsPage.tsx'
+import InvestigationCaseComparisonPage from './features/investigation-case/pages/InvestigationCaseComparisonPage.tsx'
+import DetachedReferencePrintsPage from './features/investigation-case/pages/DetachedReferencePrintsPage.tsx'
+import CaseTracesPage from './features/biometric-image/pages/CaseTracesPage.tsx'
+import CaseHistoryPage from './features/audit-trail/pages/CaseHistoryPage.tsx'
+import CaseReportsPage from './features/reporting/pages/CaseReportsPage.tsx'
+import HomeRoute from './layouts/HomeRoute.tsx'
+import ServiceUsersPage from './features/users/pages/ServiceUsersPage.tsx'
+import ServiceSettingsPage from './features/settings/pages/ServiceSettingsPage.tsx'
+import PublicSealVerificationPage from './features/public-verification/pages/PublicSealVerificationPage.tsx'
+
+const router = createBrowserRouter([
+  { path: '/', element: <TenantRequiredPage /> },
+  { path: '/:slug/verification', element: <PublicSealVerificationPage /> },
+  {
+    path: '/:slug',
+    element: <TenantAuthBoundary />,
+    children: [
+      { index: true, element: <HomeRoute /> },
+      { path: 'affaires', element: <InvestigationCasesPage /> },
+      { path: 'dossier-pair', element: <CasesToVerifyPage /> },
+      { path: 'utilisateurs', element: <ServiceUsersPage /> },
+      { path: 'parametres', element: <ServiceSettingsPage /> },
+      {
+        path: 'affaires/:id',
+        children: [
+          {
+            element: <CasePageLayout />,
+            children: [{ index: true, element: <InvestigationCaseDetailsPage /> }],
+          },
+          {
+            path: 'historique',
+            element: <CasePageLayout activeNav="history" />,
+            children: [{ index: true, element: <CaseHistoryPage /> }],
+          },
+          {
+            path: 'sujets',
+            element: <CasePageLayout activeNav="subjects" />,
+            children: [
+              { index: true, element: <InvestigationCaseSubjectsPage /> },
+              { path: ':subjectId', element: <SubjectDetailsPage /> },
+            ],
+          },
+          {
+            path: 'traces',
+            element: <CasePageLayout activeNav="traces" />,
+            children: [{ index: true, element: <CaseTracesPage /> }],
+          },
+          {
+            path: 'rapports',
+            element: <CasePageLayout activeNav="reports" />,
+            children: [{ index: true, element: <CaseReportsPage /> }],
+          },
+          {
+            path: 'comparaison',
+            element: <CaseComparisonLayout />,
+            children: [
+              { index: true, element: <InvestigationCaseComparisonPage /> },
+              { path: 'empreintes', element: <DetachedReferencePrintsPage /> },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+])
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <RouterProvider router={router} />
+      </TooltipProvider>
+      <Toaster richColors position="top-right" />
+      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+    </QueryClientProvider>
+  </StrictMode>
+)

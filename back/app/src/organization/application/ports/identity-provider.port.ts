@@ -1,0 +1,58 @@
+export const IDENTITY_PROVIDER = Symbol('IDENTITY_PROVIDER');
+
+export interface TenantUser {
+  id: string;
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  enabled: boolean;
+  emailVerified: boolean;
+}
+
+export interface CreatedUser extends TenantUser {
+  temporaryPassword: string | null;
+  /** Vrai seulement si cet appel a créé le compte : une compensation ne doit
+   * jamais supprimer un compte qui préexistait. */
+  created: boolean;
+}
+
+export interface EnsureResult {
+  created: boolean;
+}
+
+export interface CreateUserInput {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+/** Mise à jour partielle : un champ absent n'est pas touché sur l'identity provider. */
+export interface UpdateUserInput {
+  enabled?: boolean;
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface ListUsersInput {
+  first: number;
+  max: number;
+}
+
+export interface ListedUsers {
+  items: TenantUser[];
+  total: number;
+}
+
+export interface IdentityProviderPort {
+  ensureRealm(realm: string, displayName: string): Promise<EnsureResult>;
+  deleteRealm(realm: string): Promise<void>;
+  listUsers(realm: string, input: ListUsersInput): Promise<ListedUsers>;
+  createUser(realm: string, input: CreateUserInput): Promise<CreatedUser>;
+  updateUser(
+    realm: string,
+    userId: string,
+    input: UpdateUserInput,
+  ): Promise<void>;
+  deleteUser(realm: string, userId: string): Promise<void>;
+}

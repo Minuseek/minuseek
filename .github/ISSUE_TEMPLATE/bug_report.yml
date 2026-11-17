@@ -1,0 +1,44 @@
+name: Signaler un bug
+description: Un comportement inattendu de Minuseek
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler un bug.
+        **Ne joignez jamais d'image d'empreinte réelle ni de donnée d'affaire.**
+        Pour une faille de sécurité, suivez [SECURITY.md](../blob/main/SECURITY.md) au lieu d'ouvrir une issue.
+  - type: dropdown
+    id: part
+    attributes:
+      label: Partie concernée
+      options: [back, front, les deux, je ne sais pas]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Ce qui se passe
+      description: Ce que vous constatez, avec le message d'erreur s'il y en a un.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ce qui était attendu
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Étapes pour reproduire
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version ou commit
+      placeholder: ex. v0.1.0 ou a1b2c3d

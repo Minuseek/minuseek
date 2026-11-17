@@ -1,0 +1,21 @@
+name: Proposer une évolution
+description: Une idée de fonctionnalité ou d'amélioration
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Le besoin
+      description: Le problème rencontré dans le travail d'expertise, avant la solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Ce que vous proposez
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées

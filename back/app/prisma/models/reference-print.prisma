@@ -1,0 +1,53 @@
+model ReferencePrint {
+  id        String          @id @db.Uuid
+  path      String
+  caseId    String          @db.Uuid
+  sha256    String?         @db.Char(64)
+  displayableSha256 String?         @db.Char(64)
+  thumbPath String?
+  subjectId String?         @db.Uuid
+  position  FingerPosition?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  withdrawnAt      DateTime?
+  withdrawalMotive WithdrawalMotive?
+
+  // Renseigné si et seulement si le motif est OTHER : la phrase de l'opérateur,
+  // imprimée telle quelle dans le rapport à la place d'un libellé de la liste.
+  withdrawalMotiveDetail String?
+
+  imageDestroyedAt DateTime?
+
+  sourceWidth  Int?
+  sourceHeight Int?
+
+  // Résolution calibrée par l'opérateur sur la règle photographiée (L5-4), en
+  // points par pouce de l'image telle qu'elle a été déposée. L'absence ne se
+  // confond pas avec un zéro : une empreinte non calibrée rend `null`.
+  resolutionDpi Float?
+
+  // Rayon des repères de minuties de cette pièce, en pixels de l'image source
+  // (L5-12). Nul tant que l'opérateur n'a rien réglé : l'atelier et la planche
+  // retombent alors sur la règle dérivée du plus grand côté.
+  markRadius Int?
+
+  matchings Matching[]
+  hits      Hit[]
+}
+
+enum FingerPosition {
+  RIGHT_THUMB
+  RIGHT_INDEX
+  RIGHT_MIDDLE
+  RIGHT_RING
+  RIGHT_LITTLE
+  LEFT_THUMB
+  LEFT_INDEX
+  LEFT_MIDDLE
+  LEFT_RING
+  LEFT_LITTLE
+  RIGHT_PALM
+  LEFT_PALM
+  OTHER
+}

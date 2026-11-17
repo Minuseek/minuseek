@@ -1,0 +1,463 @@
+import {
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CaseAlreadyUnderExpertiseError } from '../../domain/case-expertise/errors/case-already-under-expertise.error';
+import { CaseNotUnderExpertiseError } from '../../domain/case-expertise/errors/case-not-under-expertise.error';
+import { InvalidSaisineError } from '../../domain/case-expertise/errors/invalid-saisine.error';
+import { InvalidCaseExpertiseError } from '../../domain/case-expertise/errors/invalid-case-expertise.error';
+import { CaseClosedError } from '../../domain/investigation-case/errors/case-closed.error';
+import { CaseNumberAlreadyExistsError } from '../../domain/investigation-case/errors/case-number-already-exists.error';
+import { CaseNotFoundError } from '../../domain/investigation-case/errors/case-not-found.error';
+import { InvalidCaseTransitionError } from '../../domain/investigation-case/errors/invalid-case-transition.error';
+import { InvalidOffensePeriodError } from '../../domain/investigation-case/errors/invalid-offense-period.error';
+import { OperatorChangeNotAllowedError } from '../../domain/investigation-case/errors/operator-change-not-allowed.error';
+import { DisabledOperatorError } from '../../domain/investigation-case/errors/disabled-operator.error';
+import { UnknownOperatorError } from '../../domain/investigation-case/errors/unknown-operator.error';
+import { DeclareCaseExpertiseCommand } from '../../application/commands/declare-case-expertise/declare-case-expertise.command';
+import { UpdateCaseSaisineCommand } from '../../application/commands/update-case-saisine/update-case-saisine.command';
+import { OpenInvestigationCaseCommand } from '../../application/commands/open-investigation-case/open-investigation-case.command';
+import { UpdateInvestigationCaseCommand } from '../../application/commands/update-investigation-case/update-investigation-case.command';
+import { UpdateCaseRecipientCommand } from '../../application/commands/update-case-recipient/update-case-recipient.command';
+import { CloseInvestigationCaseCommand } from '../../application/commands/close-investigation-case/close-investigation-case.command';
+import { ReopenInvestigationCaseCommand } from '../../application/commands/reopen-investigation-case/reopen-investigation-case.command';
+import { ChangeCaseStatusCommand } from '../../application/commands/change-case-status/change-case-status.command';
+import { DeclareCaseExpertiseDto } from './dto/declare-case-expertise.dto';
+import { UpdateCaseSaisineDto } from './dto/update-case-saisine.dto';
+import { OpenInvestigationCaseDto } from './dto/open-investigation-case.dto';
+import { UpdateInvestigationCaseDto } from './dto/update-investigation-case.dto';
+import { UpdateCaseRecipientDto } from './dto/update-case-recipient.dto';
+import { ReopenInvestigationCaseDto } from './dto/reopen-investigation-case.dto';
+import { ChangeCaseStatusDto } from './dto/change-case-status.dto';
+import { ListInvestigationCasesDto } from './dto/list-investigation-cases.dto';
+import { ListInvestigationCasesQuery } from '../../application/queries/list-investigation-cases/list-investigation-cases.query';
+import { GetInvestigationCaseQuery } from '../../application/queries/get-investigation-case/get-investigation-case.query';
+import { InvestigationCaseReadModel } from '../../application/queries/list-investigation-cases/investigation-case-read-model';
+import { CurrentUser } from '../../../auth/infrastructure/http/current-user.decorator';
+import { AuthenticatedUser } from '../../../auth/infrastructure/http/auth.types';
+import { toAuditActor } from '../../../auth/infrastructure/http/audit-actor.mapper';
+import { CurrentServiceUser } from '../../../identity-access/infrastructure/http/current-service-user.decorator';
+import { UserReadModel } from '../../../identity-access/application/queries/get-user-by-provider-id/user-read-model';
+import { UserRoleEnum } from '../../../identity-access/domain/user/value-objects/user-role.vo';
+import type { CaseRequester } from '../../../access/application/case-access.service';
+import {
+  CaseAdministration,
+  CaseScoped,
+  CaseScopedList,
+  NoCaseScope,
+} from '../../../access/infrastructure/http/case-scope.decorator';
+
+const NO_SERVICE_ACCOUNT_MESSAGE =
+  "Aucun compte de service n'est rattaché à ce jeton";
+
+/** Un jeton sans compte dans le service ne voit aucune affaire — il n'en voit
+ * surtout pas la totalité. */
+const caseRequesterOf = (user?: UserReadModel): CaseRequester | null =>
+  user ? { id: user.id, role: user.role as UserRoleEnum } : null;
+
+const statedDate = (value: string | null): Date | null =>
+  value === null ? null : new Date(value);
+
+/** Un champ absent du corps n'entre pas dans la commande ; un champ à `null` y
+ * entre pour vider la colonne. Les deux se distinguent jusqu'au domaine. */
+const judicialHeaderOf = (dto: UpdateInvestigationCaseDto) => ({
+  ...(dto.requestDate !== undefined && {
+    requestDate: statedDate(dto.requestDate),
+  }),
+  ...(dto.requesterQuality !== undefined && {
+    requesterQuality: dto.requesterQuality,
+  }),
+  ...(dto.requesterName !== undefined && {
+    requesterName: dto.requesterName,
+  }),
+  ...(dto.requesterService !== undefined && {
+    requesterService: dto.requesterService,
+  }),
+  ...(dto.offenseNature !== undefined && {
+    offenseNature: dto.offenseNature,
+  }),
+  ...(dto.offenseLocation !== undefined && {
+    offenseLocation: dto.offenseLocation,
+  }),
+  ...(dto.offenseDateFrom !== undefined && {
+    offenseDateFrom: statedDate(dto.offenseDateFrom),
+  }),
+  ...(dto.offenseDateTo !== undefined && {
+    offenseDateTo: statedDate(dto.offenseDateTo),
+  }),
+  ...(dto.interventionDate !== undefined && {
+    interventionDate: statedDate(dto.interventionDate),
+  }),
+  ...(dto.caseAgainst !== undefined && { caseAgainst: dto.caseAgainst }),
+});
+
+@ApiTags('investigation-cases')
+@Controller('investigation-cases')
+export class InvestigationController {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  @Post()
+  @NoCaseScope("création : l'affaire n'existe pas encore")
+  @ApiOperation({ summary: 'Ouvrir une nouvelle affaire' })
+  @ApiResponse({ status: 201, description: 'affaire créé' })
+  @ApiResponse({
+    status: 404,
+    description: "Le jeton n'a pas de compte dans ce service",
+  })
+  @ApiResponse({ status: 409, description: "Numéro d'affaire déjà existant" })
+  async open(
+    @Body() dto: OpenInvestigationCaseDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentServiceUser() author?: UserReadModel,
+  ) {
+    // todo renommer service en unit  pour eviter confusion avec un service technique (NestJS) et un service métier (unité de police)
+    if (!author) throw new NotFoundException(NO_SERVICE_ACCOUNT_MESSAGE);
+
+    try {
+      const id = await this.commandBus.execute<
+        OpenInvestigationCaseCommand,
+        string
+      >(
+        new OpenInvestigationCaseCommand(
+          toAuditActor(user),
+          author.id,
+          dto.caseNumber,
+          dto.pvNumber,
+          dto.description,
+        ),
+      );
+      return { id };
+    } catch (e) {
+      if (e instanceof CaseNumberAlreadyExistsError)
+        throw new ConflictException(e.message);
+      throw e;
+    }
+  }
+
+  @Get()
+  @CaseScopedList()
+  @ApiOperation({ summary: 'lister les affaires' })
+  @ApiResponse({ status: 200, description: 'Liste paginée des affaires' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Paramètres invalides (statut inconnu, page ou limit hors bornes)',
+  })
+  list(
+    @Query() dto: ListInvestigationCasesDto,
+    @CurrentServiceUser() requester?: UserReadModel,
+  ) {
+    return this.queryBus.execute(
+      new ListInvestigationCasesQuery(
+        dto.status,
+        dto.page,
+        dto.limit,
+        caseRequesterOf(requester),
+      ),
+    );
+  }
+
+  @Get(':id')
+  @CaseScoped()
+  @ApiOperation({ summary: "Récupérer le détail d'une affaire" })
+  @ApiResponse({ status: 200, description: "Détail de l'affaire" })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  async getById(@Param('id') id: string) {
+    try {
+      return await this.queryBus.execute<
+        GetInvestigationCaseQuery,
+        InvestigationCaseReadModel
+      >(new GetInvestigationCaseQuery(id));
+    } catch (e) {
+      if (e instanceof CaseNotFoundError)
+        throw new NotFoundException(e.message);
+      throw e;
+    }
+  }
+
+  @Patch(':id')
+  @CaseAdministration()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Corriger les informations d'une affaire" })
+  @ApiResponse({ status: 204, description: 'Affaire modifiée' })
+  @ApiResponse({
+    status: 400,
+    description:
+      "Le compte désigné comme opérateur n'existe pas dans ce service ou y est désactivé, ou la période des faits est inversée",
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      "L'appelant n'est ni l'opérateur en place ni responsable, et désigne un autre opérateur",
+  })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  @ApiResponse({ status: 409, description: 'Affaire close' })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateInvestigationCaseDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentServiceUser() requester?: UserReadModel,
+  ): Promise<void> {
+    if (!requester) throw new NotFoundException(NO_SERVICE_ACCOUNT_MESSAGE);
+
+    try {
+      await this.commandBus.execute<UpdateInvestigationCaseCommand, void>(
+        new UpdateInvestigationCaseCommand(
+          toAuditActor(user),
+          { id: requester.id, role: requester.role as UserRoleEnum },
+          id,
+          {
+            pvNumber: dto.pvNumber,
+            description: dto.description,
+            operatorUserId: dto.operatorUserId,
+            ...judicialHeaderOf(dto),
+          },
+        ),
+      );
+    } catch (e) {
+      if (e instanceof CaseNotFoundError)
+        throw new NotFoundException(e.message);
+      if (e instanceof InvalidOffensePeriodError)
+        throw new BadRequestException(e.message);
+      if (e instanceof OperatorChangeNotAllowedError)
+        throw new ForbiddenException(e.message);
+      if (e instanceof UnknownOperatorError)
+        throw new BadRequestException(e.message);
+      if (e instanceof DisabledOperatorError)
+        throw new BadRequestException(e.message);
+      if (e instanceof CaseClosedError) throw new ConflictException(e.message);
+      throw e;
+    }
+  }
+  @Put(':id/recipient')
+  @CaseAdministration()
+  @ApiOperation({ summary: "Nommer le destinataire du rapport d'une affaire" })
+  @ApiResponse({ status: 200, description: "Détail de l'affaire à jour" })
+  @ApiResponse({ status: 400, description: 'Ligne de destinataire vide' })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  @ApiResponse({ status: 409, description: 'Affaire close' })
+  async updateRecipient(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCaseRecipientDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<InvestigationCaseReadModel> {
+    try {
+      await this.commandBus.execute<UpdateCaseRecipientCommand, void>(
+        new UpdateCaseRecipientCommand(toAuditActor(user), id, {
+          authority: dto.authority,
+          attentionQuality: dto.attentionQuality,
+          attentionName: dto.attentionName,
+        }),
+      );
+      return await this.queryBus.execute<
+        GetInvestigationCaseQuery,
+        InvestigationCaseReadModel
+      >(new GetInvestigationCaseQuery(id));
+    } catch (e) {
+      if (e instanceof CaseNotFoundError)
+        throw new NotFoundException(e.message);
+      if (e instanceof CaseClosedError) throw new ConflictException(e.message);
+      throw e;
+    }
+  }
+
+  @Post(':id/closure')
+  @CaseAdministration()
+  @ApiOperation({
+    summary: 'Clore une affaire : le travail technique est fini',
+  })
+  @ApiResponse({ status: 200, description: "Détail de l'affaire close" })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  @ApiResponse({ status: 409, description: 'Affaire déjà close' })
+  close(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<InvestigationCaseReadModel> {
+    return this.changeStatus(
+      id,
+      new CloseInvestigationCaseCommand(toAuditActor(user), id),
+    );
+  }
+
+  @Post(':id/reopening')
+  @CaseAdministration()
+  @ApiOperation({ summary: 'Rouvrir une affaire close, sur motif écrit' })
+  @ApiResponse({ status: 200, description: "Détail de l'affaire rouverte" })
+  @ApiResponse({ status: 400, description: 'Motif absent ou trop long' })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  @ApiResponse({ status: 409, description: "L'affaire n'est pas close" })
+  reopen(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReopenInvestigationCaseDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<InvestigationCaseReadModel> {
+    return this.changeStatus(
+      id,
+      new ReopenInvestigationCaseCommand(toAuditActor(user), id, dto.reason),
+    );
+  }
+
+  @Put(':id/status')
+  @CaseAdministration()
+  @ApiOperation({
+    summary: "Porter l'affaire en cours de traitement ou en vérification",
+  })
+  @ApiResponse({ status: 200, description: "Détail de l'affaire à jour" })
+  @ApiResponse({ status: 400, description: 'Statut hors du catalogue' })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  @ApiResponse({ status: 409, description: 'Transition refusée' })
+  changeWorkStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ChangeCaseStatusDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<InvestigationCaseReadModel> {
+    return this.changeStatus(
+      id,
+      new ChangeCaseStatusCommand(toAuditActor(user), id, dto.status),
+    );
+  }
+
+  @Post(':id/expertise')
+  @CaseAdministration()
+  @ApiOperation({
+    summary: 'Déclarer une affaire en expertise, serment prêté',
+  })
+  @ApiResponse({ status: 201, description: "Détail de l'affaire en expertise" })
+  @ApiResponse({ status: 400, description: 'Serment ou juridiction absent' })
+  @ApiResponse({ status: 404, description: 'Affaire non trouvée' })
+  @ApiResponse({ status: 409, description: 'Affaire déjà en expertise' })
+  async declareExpertise(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DeclareCaseExpertiseDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentServiceUser() requester?: UserReadModel,
+  ): Promise<InvestigationCaseReadModel> {
+    if (!requester) throw new NotFoundException(NO_SERVICE_ACCOUNT_MESSAGE);
+
+    try {
+      await this.commandBus.execute<DeclareCaseExpertiseCommand, void>(
+        new DeclareCaseExpertiseCommand(
+          toAuditActor(user),
+          requester.id,
+          id,
+          dto.oathStatement,
+          dto.courtReference,
+        ),
+      );
+      return await this.queryBus.execute<
+        GetInvestigationCaseQuery,
+        InvestigationCaseReadModel
+      >(new GetInvestigationCaseQuery(id));
+    } catch (e) {
+      if (e instanceof CaseNotFoundError)
+        throw new NotFoundException(e.message);
+      if (e instanceof CaseAlreadyUnderExpertiseError)
+        throw new ConflictException(e.message);
+      if (e instanceof InvalidCaseExpertiseError)
+        throw new BadRequestException(e.message);
+      throw e;
+    }
+  }
+
+  @Patch(':id/expertise')
+  @CaseAdministration()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Compléter la saisine du dossier en expertise' })
+  @ApiResponse({ status: 204, description: 'Saisine enregistrée' })
+  @ApiResponse({
+    status: 400,
+    description: 'Nombre de scellés invalide, ou prorogation mal datée',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Affaire non trouvée, ou pas déclarée en expertise',
+  })
+  async updateSaisine(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCaseSaisineDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentServiceUser() requester?: UserReadModel,
+  ): Promise<void> {
+    if (!requester) throw new NotFoundException(NO_SERVICE_ACCOUNT_MESSAGE);
+
+    try {
+      await this.commandBus.execute<UpdateCaseSaisineCommand, void>(
+        new UpdateCaseSaisineCommand(toAuditActor(user), requester.id, id, {
+          ...(dto.magistrateName !== undefined && {
+            magistrateName: dto.magistrateName,
+          }),
+          ...(dto.magistrateTitle !== undefined && {
+            magistrateTitle: dto.magistrateTitle,
+          }),
+          ...(dto.ordinanceDate !== undefined && {
+            ordinanceDate: new Date(dto.ordinanceDate),
+          }),
+          ...(dto.missionObject !== undefined && {
+            missionObject: dto.missionObject,
+          }),
+          ...(dto.sealCount !== undefined && { sealCount: dto.sealCount }),
+          ...(dto.prorogationDeadline !== undefined && {
+            prorogationDeadline: new Date(dto.prorogationDeadline),
+          }),
+          ...(dto.prorogationOrdinanceDate !== undefined && {
+            prorogationOrdinanceDate: new Date(dto.prorogationOrdinanceDate),
+          }),
+          ...(dto.biologicalPrecautions !== undefined && {
+            biologicalPrecautions: dto.biologicalPrecautions,
+          }),
+          ...(dto.assistants !== undefined && { assistants: dto.assistants }),
+        }),
+      );
+    } catch (e) {
+      if (
+        e instanceof CaseNotFoundError ||
+        e instanceof CaseNotUnderExpertiseError
+      )
+        throw new NotFoundException(e.message);
+      if (e instanceof InvalidSaisineError)
+        throw new BadRequestException(e.message);
+      throw e;
+    }
+  }
+
+  /** Clore et rouvrir répondent tous deux le détail à jour de l'affaire. */
+  private async changeStatus(
+    id: string,
+    command:
+      | CloseInvestigationCaseCommand
+      | ReopenInvestigationCaseCommand
+      | ChangeCaseStatusCommand,
+  ): Promise<InvestigationCaseReadModel> {
+    try {
+      await this.commandBus.execute(command);
+      return await this.queryBus.execute<
+        GetInvestigationCaseQuery,
+        InvestigationCaseReadModel
+      >(new GetInvestigationCaseQuery(id));
+    } catch (e) {
+      if (e instanceof CaseNotFoundError)
+        throw new NotFoundException(e.message);
+      if (e instanceof InvalidCaseTransitionError)
+        throw new ConflictException(e.message);
+      throw e;
+    }
+  }
+}

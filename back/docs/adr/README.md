@@ -1,0 +1,43 @@
+# Architecture Decision Records (ADR)
+
+On consigne ici les **décisions structurantes** du repo : choix techno, trade-offs d'archi, contrats d'API, sécurité, modèle de données. Une décision « qui le mérite » = difficile à inverser, qui engage l'équipe, ou qu'un nouvel arrivant devrait pouvoir comprendre sans archéologie git.
+
+## Règles
+
+- Un fichier par décision : `NNNN-titre-en-kebab.md` (numéro incrémental, ex. `0001-...`).
+- Partir de [`0000-template.md`](0000-template.md).
+- Ne pas réécrire une décision passée : si elle change, créer un nouvel ADR et passer l'ancien en `Statut : remplacé par ADR-XXXX`.
+- Les agents IA créent un ADR quand ils prennent ou proposent une telle décision (cf. « Directives agents » dans `AGENTS.md`).
+
+## Index
+
+- [ADR-0001](0001-multi-tenant-db-per-tenant.md) — Multi-tenant : une base de données par tenant
+- [ADR-0002](0002-gcs-private-storage-signed-urls.md) — Stockage des images en bucket GCS privé + URLs signées V4 (keyless)
+- [ADR-0003](0003-gcs-only-image-storage.md) — GCS partout : suppression du stockage local, dev par impersonation
+- [ADR-0004](0004-organization-context-superadmin-authorization.md) — Organisation : bounded context métier ; superadmin : niveau d'autorisation
+- [ADR-0005](0005-keycloak-client-public-mobile.md) — Client OIDC public `minuseek-mobile` (realm Keycloak)
+- [ADR-0006](0006-issuer-host-lax-dev.md) — Vérification lax du host de l'issuer en dev local
+- [ADR-0007](0007-compare-trace-owned-by-back.md) — Le back possède le use case de comparaison biométrique
+- [ADR-0008](0008-validate-case-before-trace-upload.md) — Validation de l'affaire avant l'upload d'une trace
+- [ADR-0009](0009-chained-audit-trail.md) — Audit trail chaîné par tenant, ancrage RFC 3161, scellés de fichiers
+- [ADR-0010](0010-chiffrement-images-par-le-back-gcs.md) — Chiffrement des images côté client + upload direct GCS
+- [ADR-0011](0011-metadonnees-capture-sur-upload-trace.md) — Métadonnées de capture sur l'upload d'une trace
+- [ADR-0012](0012-report-generation.md) — Génération et scellement des rapports PDF
+- [ADR-0013](0013-controle-qualite-de-capture-persiste.md) — Persistance du contrôle qualité de capture sur l'upload d'une trace
+- [ADR-0014](0014-compte-de-service-et-utilisateur-courant.md) — Le compte du service naît avec le compte d'identité, et chaque requête porte son auteur
+- [ADR-0015](0015-etat-de-compte-projete-depuis-keycloak.md) — L'état d'un compte de service est décidé par Keycloak et projeté chez nous
+- [ADR-0016](0016-reglages-de-service-dans-la-base-du-tenant.md) — Les réglages d'un service vivent dans sa base, sur une ligne unique, et leur écriture est un acte
+- [ADR-0017](0017-numerotation-et-signataire-des-rapports.md) — Un rapport porte un numéro pris sur un compteur unique par dossier, et le nom de celui qui le signe
+- [ADR-0018](0018-registre-des-scelles-projete-en-base-d-administration.md) — Le registre des scellés est une projection en base d'administration, pas une seconde vérité
+- [ADR-0019](0019-mission-de-verification-distincte-de-l-operateur.md) — La vérification est une mission portée par une table à part, et elle n'ouvre pas l'administration de l'affaire
+- [ADR-0020](0020-mode-aveugle-cote-serveur.md) — Le mode aveugle est décidé et appliqué par le serveur, et le calque porte son auteur
+- [ADR-0021](0021-confrontation-des-conclusions.md) — Ce que « concorder » veut dire, et quand la confrontation se joue
+- [ADR-0022](0022-vignette-d-affichage-hors-piece.md) — La vignette d'affichage est un artefact hors pièce, suffixé avant le point
+- [ADR-0023](0023-la-paire-de-minuties-est-une-relation-en-base.md) — La paire de minuties est une relation en base, et son numéro n'est jamais stocké
+- [ADR-0024](0024-le-travail-de-l-appelant-est-une-lecture-sans-parametre.md) — Le travail de l'appelant est une lecture sans paramètre, distincte du pilotage du service
+- [ADR-0025](0025-requalifier-une-minutie-appariee-requalifie-la-paire.md) — Requalifier une minutie appariée requalifie la paire
+- [ADR-0026](0026-la-trace-adopte-le-type-de-l-empreinte-a-l-appariement.md) — À l'appariement, la trace adopte le type de l'empreinte de référence
+- [ADR-0027](0027-la-taille-des-reperes-appartient-a-la-piece.md) — La taille des repères appartient à la pièce
+- [ADR-0028](0028-la-courbe-tonale-remplace-les-niveaux-comme-reglage-d-expert.md) — La courbe tonale remplace les niveaux comme réglage d'expert
+- [ADR-0029](0029-retrait-du-controle-qualite-de-capture-de-l-api.md) — Le contrôle de netteté sort de l'API : la mesure du viseur ne décrit pas la pièce versée
+- [ADR-0030](0030-stockage-local-pour-l-auto-hebergement.md) — Stockage local signé pour l'auto-hébergement

@@ -1,0 +1,38 @@
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const allowedOrigins = (process.env.ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+    credentials: false,
+  });
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+  );
+
+  app.setGlobalPrefix('api', { exclude: ['/docs'] });
+
+  // L'image de prod pose SWAGGER_DOC=false : /docs n'existe jamais en déployé.
+  if (process.env.SWAGGER_DOC !== 'false') {
+    const config = new DocumentBuilder()
+      .setTitle('Minuseek API')
+      .setVersion('1.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'keycloak',
+      )
+      .build();
+    SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, config));
+  }
+
+  await app.listen(process.env.PORT ?? 3000);
+}
+void bootstrap();

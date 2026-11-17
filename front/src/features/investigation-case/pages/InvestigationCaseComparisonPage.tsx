@@ -1,0 +1,532 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { ResizableHandle, ResizablePanelGroup } from '@/features/shared/ui/resizable'
+import { useComparisonWindow } from '@/features/investigation-case/hooks/useComparisonWindow'
+import { useReferencePrintDecorations } from '@/features/investigation-case/hooks/useReferencePrintDecorations'
+import { useDetachedWindow } from '@/features/shared/hooks/useDetachedWindow'
+import ComparisonWindow from '@/features/investigation-case/components/comparison/ComparisonWindow'
+import ComparisonWorkbench from '@/features/investigation-case/components/comparison/ComparisonWorkbench'
+import HitButton from '@/features/investigation-case/components/comparison/HitButton'
+import PairingControls from '@/features/investigation-case/components/comparison/PairingControls'
+import PairRequalificationDialog from '@/features/investigation-case/components/comparison/PairRequalificationDialog'
+import ClosedCaseBanner from '@/features/investigation-case/components/ClosedCaseBanner'
+import BlindVerificationBanner from '@/features/investigation-case/components/comparison/BlindVerificationBanner'
+import VerificationPanel from '@/features/investigation-case/components/comparison/VerificationPanel'
+import { useMissionOnCase } from '@/features/investigation-case/hooks/useMissionOnCase'
+import { useMinutiaPairs } from '@/features/investigation-case/hooks/useMinutiaPairs'
+import { useConcordancePlayback } from '@/features/investigation-case/hooks/useConcordancePlayback'
+import { useSubjects } from '@/features/investigation-case/hooks/useSubjects'
+import { useConcordanceRecording } from '@/features/investigation-case/hooks/useConcordanceRecording'
+import { useInvestigationCase } from '@/features/investigation-case/hooks/useInvestigationCases'
+import { minutiaPairKeys } from '@/features/investigation-case/hooks/minutiaPairKeys'
+import ConcordancePlaybackControls from '@/features/investigation-case/components/comparison/ConcordancePlaybackControls'
+import ConcordanceScreenShield from '@/features/investigation-case/components/comparison/ConcordanceScreenShield'
+import { ConcordanceVideoAPI } from '@/features/investigation-case/services/ConcordanceVideoAPI.services'
+import {
+  referenceCaptionOf,
+  traceCaptionOf,
+} from '@/features/investigation-case/lib/concordanceCaptions'
+import ConcordanceLinkOverlay from '@/features/investigation-case/components/comparison/ConcordanceLinkOverlay'
+import { downloadBlob } from '@/features/biometric-image/lib/exportImage'
+import {
+  concordanceVideoFileName,
+  pickConcordanceVideoFormat,
+  RECORDING_STOP_GRACE_MS,
+} from '@/features/investigation-case/lib/exportConcordanceVideo'
+import { DETACHED_REFERENCE_TRACE_CHANGED } from '@/features/investigation-case/types/detachedReference'
+import { isInProgress } from '@/features/shared/types/verification'
+import { useCaseIsClosed } from '@/features/investigation-case/hooks/useCaseIsClosed'
+import { biometricImageKeys, useBiometricImages } from '@/features/biometric-image/hooks/useBiometricImages'
+import { isComparisonUnavailable, useCompare } from '@/features/biometric-image/hooks/useCompare'
+import { layerKeys, useLayers } from '@/features/biometric-image/hooks/useLayers'
+import { useHits, useToggleHit } from '@/features/biometric-image/hooks/useHits'
+import { countMinutiae, REQUIRED_MINUTIAE, type MinutiaType } from '@/features/biometric-image/lib/minutiae'
+import { minutiaTypeInLayers, resolvePairType } from '@/features/biometric-image/lib/minutiaPairing'
+import { useAtelierTour } from '@/features/investigation-case/hooks/useAtelierTour'
+import { useComparisonTour } from '@/features/investigation-case/context/comparison-tour-context'
+
+type ArmedMinutia = { side: 'trace' | 'reference'; minutiaId: string }
+
+type PendingRequalification = {
+  traceMinutiaId: string
+  referenceMinutiaId: string
+  sideToQualify: 'TRACE' | 'REFERENCE'
+  currentType: MinutiaType
+  newType: MinutiaType
+}
+
+export default function InvestigationCaseComparisonPage() {
+  const { t } = useTranslation()
+  const { slug, id } = useParams<{ slug: string; id: string }>()
+  const [activeWindow, setActiveWindow] = useState<'trace' | 'reference'>()
+  const trace = useComparisonWindow()
+  const reference = useComparisonWindow()
+  const queryClient = useQueryClient()
+  // La popup est une instance d'app à part (cache React Query indépendant) : au
+  // rattachement, on invalide ce qu'elle a pu modifier pour refléter ses édits.
+  const referenceWindow = useDetachedWindow('minuseek-reference-prints', () => {
+    queryClient.invalidateQueries({ queryKey: layerKeys.all })
+    // Supprimer une minutie dans la popup casse la paire côté base : les badges du canevas de trace mentent sinon.
+    queryClient.invalidateQueries({ queryKey: minutiaPairKeys.all })
+    queryClient.invalidateQueries({ queryKey: biometricImageKeys.list('reference-prints', id ?? '') })
+  })
+
+  const { data: referencePrints = [] } = useBiometricImages('reference-prints', id ?? '')
+  // Même clé de cache que le carrousel/ComparisonWorkbench : aucune requête supplémentaire.
+  const { data: traces, isLoading: isTracesLoading } = useBiometricImages('traces', id ?? '')
+  const referenceDecorations = useReferencePrintDecorations(id ?? '')
+  const compare = useCompare()
+
+  const prepareTourScreen = () => {
+    setActiveWindow('trace')
+    if (!trace.selectedTrace && traces?.[0]) trace.setSelectedTrace(traces[0])
+  }
+  const { restartTour } = useAtelierTour(!isTracesLoading, prepareTourScreen)
+  const { registerRestartTour } = useComparisonTour()
+  useEffect(() => {
+    registerRestartTour(restartTour)
+    return () => registerRestartTour(null)
+  }, [registerRestartTour, restartTour])
+
+  const traceId = trace.selectedTrace?.id
+  const referenceId = reference.selectedTrace?.id
+
+  const { data: traceLayers } = useLayers(traceId)
+  const { data: referenceLayers } = useLayers(referenceId)
+  const { data: hitReferenceIds } = useHits(traceId)
+  const toggleHit = useToggleHit(traceId)
+  const isCaseClosed = useCaseIsClosed(id ?? '')
+  const mission = useMissionOnCase(id ?? '')
+  const isBlind = mission !== undefined && isInProgress(mission)
+
+  const [isPairingMode, setPairingMode] = useState(false)
+  const [armed, setArmed] = useState<ArmedMinutia | null>(null)
+  const [pendingRequalification, setPendingRequalification] = useState<PendingRequalification | null>(null)
+  const minutiaPairs = useMinutiaPairs(traceId, referenceId)
+  const canPair = !!traceId && !!referenceId
+
+  // Mode démonstration des concordances (L7-3) : lecture pair par pair, état UI
+  // éphémère, rien n'est enregistré.
+  const sortedPairs = useMemo(
+    () => [...minutiaPairs.pairs].sort((a, b) => a.number - b.number),
+    [minutiaPairs.pairs]
+  )
+  const { data: investigationCase } = useInvestigationCase(id ?? '')
+  const { data: subjects = [] } = useSubjects(id ?? '')
+  const referenceSubject = subjects.find((subject) => subject.id === reference.selectedTrace?.subjectId)
+  const recording = useConcordanceRecording()
+  // Vérif navigateur bon marché (pas d'appel réseau) : sert uniquement à annoncer
+  // le format dans l'interface avant de lancer l'enregistrement (cf. critère du ticket).
+  const videoFormatLabel = pickConcordanceVideoFormat()?.label ?? 'WebM'
+  const getTracePosition = (minutiaId: string) => trace.concordanceRef.current?.getMinutiaScreenPosition(minutiaId) ?? null
+  const getReferencePosition = (minutiaId: string) =>
+    reference.concordanceRef.current?.getMinutiaScreenPosition(minutiaId) ?? null
+
+  // Export vidéo (L7-4) : la lecture pilotée par l'enregistrement se termine
+  // toujours à sa dernière paire — un délai de grâce laisse un tick de dessin
+  // capturer cet état final avant de couper le flux (sinon la dernière minutie
+  // révélée peut manquer à l'appel).
+  // Le scellé passe avant le téléchargement : une vidéo posée sur le poste de
+  // l'opérateur sans avoir été déposée est une vidéo dont la page publique
+  // répondra « fichier inconnu », et c'est exactement le cas où l'outil ment.
+  const depositRecording = async (blob: Blob, fileName: string): Promise<boolean> => {
+    if (!id || !traceId || !referenceId) return false
+    try {
+      await ConcordanceVideoAPI.deposit(id, {
+        traceId,
+        referencePrintId: referenceId,
+        file: new File([blob], fileName, { type: blob.type }),
+      })
+      return true
+    } catch {
+      toast.error(t('investigationCase.comparison.recordingNotSealedToast'))
+      return false
+    }
+  }
+
+  const handlePlaybackComplete = () => {
+    if (!recording.isRecording) return
+    window.setTimeout(() => {
+      recording.finish().then(async (result) => {
+        if (!result) {
+          toast.error(t('investigationCase.comparison.recordingAbortedToast'))
+          return
+        }
+        const fileName = concordanceVideoFileName(investigationCase?.caseNumber ?? '', new Date(), result.format.extension)
+        if (!(await depositRecording(result.blob, fileName))) return
+        downloadBlob(result.blob, fileName)
+        toast.success(t('investigationCase.comparison.recordingSavedToast', { format: result.format.label }))
+      })
+    }, RECORDING_STOP_GRACE_MS)
+  }
+
+  const playback = useConcordancePlayback(sortedPairs.length, handlePlaybackComplete)
+  const isConcordanceMode = playback.status !== 'idle'
+  const activePair = playback.activeIndex != null ? (sortedPairs[playback.activeIndex] ?? null) : null
+  // `activePair` fait toujours partie de `revealedPairs` (revealedCount = activeIndex + 1).
+  const revealedPairs = useMemo(() => sortedPairs.slice(0, playback.revealedCount), [sortedPairs, playback.revealedCount])
+  const revealedTraceIds = useMemo(
+    () => new Set(revealedPairs.map((pair) => pair.traceMinutiaLayerId)),
+    [revealedPairs]
+  )
+  const revealedReferenceIds = useMemo(
+    () => new Set(revealedPairs.map((pair) => pair.referenceMinutiaLayerId)),
+    [revealedPairs]
+  )
+
+  // Tient le compositeur vidéo à jour des paires à dessiner, qu'un enregistrement
+  // soit en cours ou non (écriture de ref bon marché, sans effet si pas de recording).
+  useEffect(() => {
+    recording.setLinkState(
+      revealedPairs,
+      activePair?.id ?? null,
+      t('investigationCase.comparison.concordanceCounter', { current: playback.revealedCount, total: sortedPairs.length }),
+      activePair ? t(`biometricImage.minutia.types.${activePair.minutiaType}`) : ''
+    )
+  })
+
+  // Changer de trace ou d'empreinte périme la sélection en cours d'appariement.
+  // Ajustée pendant le rendu (pas dans un effet) : évite un rendu supplémentaire.
+  const [armedFor, setArmedFor] = useState<string>()
+  const pairingKey = `${traceId ?? ''}:${referenceId ?? ''}`
+  if (armedFor !== pairingKey) {
+    setArmedFor(pairingKey)
+    if (armed) setArmed(null)
+    if (pendingRequalification) setPendingRequalification(null)
+  }
+
+  const togglePairingMode = () => {
+    if (!canPair || isConcordanceMode) return
+    setPairingMode((active) => !active)
+    setArmed(null)
+    setPendingRequalification(null)
+  }
+
+  const startConcordance = () => {
+    if (isPairingMode || sortedPairs.length === 0) return
+    setPairingMode(false)
+    setArmed(null)
+    playback.play()
+  }
+
+  // L'enregistrement pilote lui-même une lecture complète depuis la paire 1,
+  // peu importe l'état de lecture manuelle en cours : c'est ce qui garantit un
+  // fichier qui rejoue l'animation en entier, à chaque fois.
+  const startRecording = () => {
+    if (isPairingMode || sortedPairs.length === 0 || !recording.canRecord) return
+    setPairingMode(false)
+    setArmed(null)
+    playback.stop()
+    playback.play()
+    recording.start({
+      trace: trace.videoFrameRef,
+      reference: reference.videoFrameRef,
+      traceCaption: traceCaptionOf(t, trace.selectedTrace),
+      referenceCaption: referenceCaptionOf(t, reference.selectedTrace, referenceSubject),
+      getTracePosition,
+      getReferencePosition,
+    })
+  }
+
+  const cancelRecording = () => {
+    recording.cancel()
+    playback.stop()
+  }
+
+  // Seule la page a les deux listes de calques : la règle de type se joue donc ici, avant l'appel.
+  const requestPair = (traceMinutiaId: string, referenceMinutiaId: string) => {
+    const traceType = minutiaTypeInLayers(traceLayers, traceMinutiaId)
+    const referenceType = minutiaTypeInLayers(referenceLayers, referenceMinutiaId)
+    if (!traceType || !referenceType) {
+      minutiaPairs.createPair(traceMinutiaId, referenceMinutiaId)
+      return
+    }
+    const decision = resolvePairType(traceType, referenceType)
+    if (decision.outcome === 'QUALIFIES') {
+      setPendingRequalification({
+        traceMinutiaId,
+        referenceMinutiaId,
+        sideToQualify: decision.sideToQualify,
+        currentType: decision.sideToQualify === 'TRACE' ? traceType : referenceType,
+        newType: decision.type,
+      })
+      return
+    }
+    minutiaPairs.createPair(traceMinutiaId, referenceMinutiaId)
+  }
+
+  const confirmRequalification = () => {
+    if (!pendingRequalification) return
+    minutiaPairs.createPair(pendingRequalification.traceMinutiaId, pendingRequalification.referenceMinutiaId)
+    setPendingRequalification(null)
+  }
+
+  const handleMinutiaClick = (side: 'trace' | 'reference', minutiaId: string) => {
+    if (minutiaPairs.numberByMinutiaId.has(minutiaId)) {
+      minutiaPairs.deletePairByMinutiaId(minutiaId)
+      setArmed(null)
+      return
+    }
+    if (!armed) {
+      setArmed({ side, minutiaId })
+      toast.info(t('investigationCase.comparison.pairingArmedHint'))
+      return
+    }
+    if (armed.side === side) {
+      if (armed.minutiaId === minutiaId) {
+        setArmed(null)
+        toast.info(t('investigationCase.comparison.pairingCancelled'))
+        return
+      }
+      toast.info(t('investigationCase.comparison.pairingSameSideError'))
+      setArmed({ side, minutiaId })
+      return
+    }
+    const traceMinutiaId = side === 'trace' ? minutiaId : armed.minutiaId
+    const referenceMinutiaId = side === 'reference' ? minutiaId : armed.minutiaId
+    requestPair(traceMinutiaId, referenceMinutiaId)
+    setArmed(null)
+  }
+
+  const handlePairMiss = () => {
+    toast.info(t('investigationCase.comparison.pairingMissHint'))
+  }
+
+  const isHit = !!referenceId && (hitReferenceIds?.includes(referenceId) ?? false)
+  const hasEnoughMinutiae =
+    countMinutiae(traceLayers) >= REQUIRED_MINUTIAE &&
+    countMinutiae(referenceLayers) >= REQUIRED_MINUTIAE
+  const isHitDisabled = !traceId || !referenceId || !hasEnoughMinutiae || toggleHit.isPending
+
+  const runCompare = () => {
+    // Une empreinte détruite n'a plus de fichier : l'envoyer au moteur ferait
+    // remonter une erreur technique incompréhensible.
+    const available = referencePrints.filter((print) => print.imageDestroyedAt === null)
+
+    // On filtre de la comparaison les empreintes non calibrées
+    const comparable = available.filter((print) => print.resolutionDpi !== null)
+
+    const excludedCount = available.length - comparable.length
+
+    if (!trace.selectedTrace || comparable.length === 0 || !id) return
+    compare.mutate(
+      { caseId: id, trace: trace.selectedTrace, referencePrints: comparable },
+      {
+        onSuccess: () => {
+          if (excludedCount > 0) {
+            toast.info(t('investigationCase.comparison.analyzeExcludedUncalibratedToast', { count: excludedCount }))
+          }
+          toast.success(t('investigationCase.comparison.analyzeSuccessToast'))
+        },
+        onError: (error) => {
+          toast.error(
+            t(
+              isComparisonUnavailable(error)
+                ? 'investigationCase.comparison.analyzeUnavailableToast'
+                : 'investigationCase.comparison.analyzeErrorToast',
+            ),
+          )
+        },
+      }
+    )
+  }
+
+  const onToggleHit = () => {
+    if (!id || !referenceId) return
+    toggleHit.mutate({ caseId: id, referencePrintId: referenceId, isHit })
+  }
+
+  const isReferenceDetached = referenceWindow.isOpen
+
+  // Le trait de liaison ne peut pas traverser deux fenêtres du système
+  // d'exploitation : détacher l'empreinte de référence coupe la démonstration.
+  const stopPlayback = playback.stop
+  useEffect(() => {
+    if (isReferenceDetached && isConcordanceMode) stopPlayback()
+  }, [isReferenceDetached, isConcordanceMode, stopPlayback])
+
+  // Un enregistrement en cours qui voit la lecture retomber à l'arrêt sans être
+  // passée par sa fin normale (détachement ci-dessus, ou suppression d'une
+  // paire pendant la lecture) n'a pas de démonstration complète à livrer.
+  const cancelRecordingSilently = recording.cancel
+  useEffect(() => {
+    if (playback.status === 'idle' && recording.isRecording) {
+      cancelRecordingSilently()
+      toast.error(t('investigationCase.comparison.recordingAbortedToast'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback.status, recording.isRecording, cancelRecordingSilently])
+
+  // La popup est une instance d'app à part : la trace choisie ici ne lui parvient
+  // que par l'adresse d'ouverture, puis par message. Sans elle, elle ignore les
+  // appariements et laisserait supprimer une minutie appariée sans un mot.
+  const detachedReferenceUrl =
+    slug && id
+      ? `${window.location.origin}/${slug}/affaires/${id}/comparaison/empreintes${traceId ? `?trace=${traceId}` : ''
+      }`
+      : null
+
+  const toggleDetachReference = () => {
+    if (isReferenceDetached) {
+      referenceWindow.close()
+      return
+    }
+    if (!detachedReferenceUrl) return
+    referenceWindow.open(detachedReferenceUrl)
+  }
+
+  // Changer de trace pendant le détachement : la popup est prévenue par message,
+  // sinon elle garderait les paires de la trace précédente.
+  const postToDetachedReference = referenceWindow.post
+  useEffect(() => {
+    postToDetachedReference({ type: DETACHED_REFERENCE_TRACE_CHANGED, traceId: traceId ?? null })
+  }, [traceId, postToDetachedReference])
+
+  if (!id) return null
+
+  // Empreintes détachées dans leur propre fenêtre : les traces prennent toute la
+  // largeur ; la fermeture de la popup (détectée par useDetachedWindow) restaure le split.
+  if (isReferenceDetached) {
+    return (
+      <div className="flex h-full min-h-[500px] flex-col gap-2">
+        <ClosedCaseBanner caseId={id} />
+        {isBlind && <BlindVerificationBanner />}
+        <ComparisonWorkbench
+          side="left"
+          type="traces"
+          caseId={id}
+          isActive
+          onActivate={() => setActiveWindow('trace')}
+          window={trace}
+          isComparing={compare.isPending}
+          onAnalyze={runCompare}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-2">
+      <ClosedCaseBanner caseId={id} />
+      {isBlind && <BlindVerificationBanner />}
+      <div className="relative h-full min-h-[500px]">
+        <ResizablePanelGroup orientation="horizontal" className="h-full">
+        <ComparisonWindow
+          side="left"
+          type="traces"
+          caseId={id}
+          isActive={activeWindow === 'trace'}
+          onActivate={() => setActiveWindow('trace')}
+          window={trace}
+          isComparing={compare.isPending}
+          onAnalyze={runCompare}
+          isPairingMode={isPairingMode}
+          armedMinutiaId={armed?.side === 'trace' ? armed.minutiaId : null}
+          minutiaNumbers={minutiaPairs.numberByMinutiaId}
+          onMinutiaClick={(minutiaId) => handleMinutiaClick('trace', minutiaId)}
+          onPairMiss={handlePairMiss}
+          isConcordanceMode={isConcordanceMode}
+          revealedMinutiaIds={revealedTraceIds}
+          activeMinutiaId={isConcordanceMode ? (activePair?.traceMinutiaLayerId ?? null) : null}
+        />
+        <ResizableHandle withHandle className="w-2 bg-transparent">
+          {/* Ancré sur le séparateur → suit le drag ; posé vers le bas. */}
+          <div
+            className="pointer-events-auto absolute bottom-2 left-1/2 z-20 flex flex-col -translate-x-1/2 -translate-y-full items-center gap-3"
+            onMouseDown={(e) => e.stopPropagation()}
+            data-tour="hit-match"
+          >
+            {mission === undefined &&
+              (isConcordanceMode ? (
+                <ConcordancePlaybackControls
+                  status={playback.status}
+                  speed={playback.speed}
+                  revealedCount={playback.revealedCount}
+                  pairCount={sortedPairs.length}
+                  onPlay={startConcordance}
+                  onToggle={playback.toggle}
+                  onSpeedChange={playback.setSpeed}
+                  onStop={recording.isRecording ? cancelRecording : playback.stop}
+                  isRecording={recording.isRecording}
+                  onDownload={startRecording}
+                  canDownload={recording.canRecord}
+                  downloadFormatLabel={videoFormatLabel}
+                />
+              ) : (
+                <>
+                  {!isCaseClosed && (
+                    <>
+                      <HitButton isHit={isHit} disabled={isHitDisabled} onClick={onToggleHit} />
+                      <PairingControls
+                        isActive={isPairingMode}
+                        disabled={!canPair}
+                        pairCount={minutiaPairs.pairs.length}
+                        onToggle={togglePairingMode}
+                      />
+                    </>
+                  )}
+                  <ConcordancePlaybackControls
+                    status="idle"
+                    speed={playback.speed}
+                    revealedCount={0}
+                    pairCount={sortedPairs.length}
+                    disabledReason={
+                      sortedPairs.length === 0 ? 'noPairs' : isPairingMode ? 'pairingActive' : null
+                    }
+                    onPlay={startConcordance}
+                    onToggle={playback.toggle}
+                    onSpeedChange={playback.setSpeed}
+                    onStop={playback.stop}
+                    onDownload={startRecording}
+                    canDownload={recording.canRecord}
+                    downloadFormatLabel={videoFormatLabel}
+                  />
+                </>
+              ))}
+          </div>
+        </ResizableHandle>
+        <ComparisonWindow
+          side="right"
+          type="reference-prints"
+          caseId={id}
+          isActive={activeWindow === 'reference'}
+          onActivate={() => setActiveWindow('reference')}
+          window={reference}
+          selectedTraceId={trace.selectedTrace?.id}
+          onToggleDetach={toggleDetachReference}
+          imageDecorations={referenceDecorations}
+          isPairingMode={isPairingMode}
+          armedMinutiaId={armed?.side === 'reference' ? armed.minutiaId : null}
+          minutiaNumbers={minutiaPairs.numberByMinutiaId}
+          onMinutiaClick={(minutiaId) => handleMinutiaClick('reference', minutiaId)}
+          onPairMiss={handlePairMiss}
+          isConcordanceMode={isConcordanceMode}
+          revealedMinutiaIds={revealedReferenceIds}
+          activeMinutiaId={isConcordanceMode ? (activePair?.referenceMinutiaLayerId ?? null) : null}
+        />
+        </ResizablePanelGroup>
+        {isConcordanceMode && <ConcordanceScreenShield />}
+      </div>
+      <ConcordanceLinkOverlay
+        isActive={isConcordanceMode}
+        pairs={revealedPairs}
+        activePairId={activePair?.id ?? null}
+        getTracePosition={getTracePosition}
+        getReferencePosition={getReferencePosition}
+      />
+      {pendingRequalification && (
+        <PairRequalificationDialog
+          sideToQualify={pendingRequalification.sideToQualify}
+          currentType={pendingRequalification.currentType}
+          newType={pendingRequalification.newType}
+          onConfirm={confirmRequalification}
+          onCancel={() => setPendingRequalification(null)}
+        />
+      )}
+      {mission && <VerificationPanel verificationId={mission.id} caseId={id} />}
+    </div>
+  )
+}

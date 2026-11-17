@@ -1,0 +1,86 @@
+model Trace {
+  id                String      @id @db.Uuid
+  number            Int
+  path              String
+  status            TraceStatus @default(RECEIVED)
+  caseId            String      @db.Uuid
+  sha256            String?     @db.Char(64)
+  displayableSha256 String?     @db.Char(64)
+  thumbPath         String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  withdrawnAt      DateTime?
+  withdrawalMotive WithdrawalMotive?
+
+  // Renseigné si et seulement si le motif est OTHER : la phrase de l'opérateur,
+  // imprimée telle quelle dans le rapport à la place d'un libellé de la liste.
+  withdrawalMotiveDetail String?
+
+  // Métadonnées de capture (B1b). Toutes nullables : le chemin galerie et les
+  // traces antérieures n'en portent aucune. `capturedAt` est la date de PRISE DE
+  // VUE (EXIF), à ne pas confondre avec `createdAt`, date de réception serveur.
+  captureWidth       Int?
+  captureHeight      Int?
+  capturedAt         DateTime?
+  captureOrientation Int?
+  captureFocalLength Float?
+  captureDeviceModel String?
+
+  // INUTILISÉE depuis L3-6 (2026-09-07). Elle a porté le contrôle de netteté
+  // relevé on-device au déclenchement (B2/B3), écrit par POST /traces, à la
+  // forme { blurScore: number >= 0, passed: boolean }. L3-4 a établi que ce
+  // qu'on mesure est la netteté d'une image du viseur, pas celle du JPEG versé
+  // au dossier : plus aucun client ne l'envoie, et le back ne l'écrit ni ne la
+  // lit plus. La colonne reste parce que la retirer serait une migration
+  // destructive en fan-out sur toutes les bases tenant ; les lignes déposées
+  // avant le retrait gardent leur valeur. Voir docs/adr/0029.
+  captureQuality Json?
+
+  sourceWidth  Int?
+  sourceHeight Int?
+
+  // Résolution calibrée par l'opérateur sur la règle photographiée (L5-4), en
+  // points par pouce de l'image telle qu'elle a été déposée. L'absence ne se
+  // confond pas avec un zéro : une trace non calibrée rend `null`.
+  resolutionDpi Float?
+
+  // Rayon des repères de minuties de cette pièce, en pixels de l'image source
+  // (L5-12). Nul tant que l'opérateur n'a rien réglé : l'atelier et la planche
+  // retombent alors sur la règle dérivée du plus grand côté.
+  markRadius Int?
+
+  origin              TraceOrigin?
+  location            String?
+  revelationTechnique RevelationTechnique?
+
+  // Date de déclaration de non-identification (L7-1c) : une trace comparée à
+  // toutes les empreintes de référence sans concordance relevée. `null` tant
+  // que rien n'a été déclaré, ou après retrait. Le journal reste la source des
+  // faits ; cette colonne ne fait que projeter l'état courant pour la lecture.
+  notIdentifiedAt DateTime?
+
+  matchings     Matching[]
+  hits          Hit[]
+  locationPhoto TraceLocationPhoto?
+
+  @@unique([caseId, number])
+}
+
+enum TraceStatus {
+  RECEIVED
+  EXPLOITABLE
+  NOT_EXPLOITABLE
+}
+
+enum TraceOrigin {
+  DIGITAL
+  PALMAR
+}
+
+enum RevelationTechnique {
+  OPTICAL_PROCESS
+  FINGERPRINT_POWDER
+  DFO
+  NINHYDRIN
+}
